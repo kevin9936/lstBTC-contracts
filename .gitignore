@@ -17,3 +17,10 @@ config
 deployments/*/solcInputs/*.json
 deployments
 scripts/operations
+# Foundry
+lib/forge-std
+.gitmodules
+cache_forge/
+.DS_Store
+out/
+.idea/

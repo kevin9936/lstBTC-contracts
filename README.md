@@ -164,6 +164,7 @@ VERIFY_OPTION=1                # Enable verification
 ```bash
 # Run all tests
 yarn test
+```
 
 > **Note**: After running tests, check the test results and ensure all tests pass before proceeding with deployment.
 
@@ -188,7 +189,6 @@ yarn test
 - Comprehensive test coverage
 - Formal verification ready
 - Upgradeable architecture with proper access controls
-
 
 ## 🤝 Contributing
 

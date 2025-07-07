@@ -1,0 +1,17 @@
+node_modules
+typechain
+
+#Hardhat files
+cache
+artifacts
+
+deployments/*/solcInputs/*.json
+deployments
+scripts/operations
+config
+dist
+src/types
+.env
+.env.*
+
+yarn-error.log

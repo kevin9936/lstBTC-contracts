@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "es2018",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "declaration": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "lib": ["es2018", "es2020.promise", "es2020.bigint", "es2020.string"],
+    "types": ["node"]
+  },
+  "include": [
+    "hardhat.config.ts",
+    "./scripts",
+    "./deploy",
+    "./test",
+    "./typechain"
+  ],
+  "files": ["./hardhat.config.ts"]
+}

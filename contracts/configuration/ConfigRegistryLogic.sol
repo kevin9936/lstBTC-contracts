@@ -70,15 +70,14 @@ contract ConfigRegistryLogic is IConfigRegistry, AccessControlBase, UUPSUpgradea
     // Base for percentage calculations (10000 = 100%)
     uint16 public constant PERCENTAGE_BASE = 10000;
 
-
     // Address of the main bridge contract
     address public override bridge;
 
     // Bitcoin confirmation requirements per custodian (custodianId => required Bitcoin confirmations)
-    mapping (uint32 => uint32) public bitcoinConfirmations;
+    mapping (uint256 => uint32) public bitcoinConfirmations;
 
     // Native chain confirmation requirements per custodian (custodianId => required native chain confirmations)
-    mapping (uint32 => uint32) public nativeConfirmations;
+    mapping (uint256 => uint32) public nativeConfirmations;
 
     // Fee configuration for peg-in operations
     FeeConfig internal pegInFeeConfig;

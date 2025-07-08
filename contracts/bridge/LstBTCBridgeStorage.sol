@@ -54,13 +54,13 @@ contract LstBTCBridgeStorage is ILstBTCBridgeStorage {
     mapping (uint256 => PegRequest) public pegOutRequests;
 
     // Mapping of batch ID to batch information (batchId => batch)
-    mapping (uint32 => Batch) public batches;
+    mapping (uint256 => Batch) public batches;
 
     // Mapping of custodian ID to array of batch IDs (custodianId => batchIds)
-    mapping (uint32 => uint32[]) public custodianBatches;
+    mapping (uint256 => uint32[]) public custodianBatches;
 
     // Mapping of custodian ID to debt amount (custodianId => debt amount)
-    mapping (uint32 => uint64) public custodianDebts;
+    mapping (uint256 => uint64) public custodianDebts;
 
     // Mapping of request ID to array of fee recipient addresses
     mapping (uint256 => address[]) public stagedRecipients;

@@ -102,7 +102,7 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
     uint32 public nextGroupId;
 
     // Mapping of group ID to group information
-    mapping (uint32 => WhitelistGroup) public whitelistGroups;
+    mapping (uint256 => WhitelistGroup) public whitelistGroups;
 
     // Mapping of entry key to entry information
     mapping (bytes32 => WhitelistEntry) public whitelistEntries;

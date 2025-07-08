@@ -8,6 +8,20 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
+/**
+ * @title LstBTCLogic
+ * @dev Main lstBTC token contract implementing ERC20 with role-based access control
+ *
+ * This contract manages the lstBTC token with features including:
+ * - Minting and burning by authorized addresses (minters, burners)
+ * - Role-based access control for different operations
+ * - Blacklisting functionality for security and compliance
+ * - Upgradeable design using UUPS pattern
+ * - Integration with bridge contract for cross-chain operations
+ *
+ * The contract follows OpenZeppelin patterns and integrates with the lstBTC
+ * bridge protocol for Bitcoin cross-chain functionality.
+ */
 contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
     Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
 
@@ -58,6 +72,11 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
         _disableInitializers();
     }
 
+    /// @notice Initializes the lstBTC token contract
+    /// @dev Sets up the ERC20 token with name and symbol, initializes all upgradeable contracts,
+    ///      and sets the maximum mint limit. Can only be called once during deployment.
+    /// @param _name Token name (e.g., "Liquid Staked Bitcoin")
+    /// @param _symbol Token symbol (e.g., "lstBTC")
     function initialize(
         string memory _name,
         string memory _symbol
@@ -73,8 +92,14 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
         maxMintLimit = 10 ** 8;
     }
 
+    /// @notice Disabled ownership renouncement for security
+    /// @dev Overrides the default renounceOwnership function to prevent accidental
+    ///      loss of control over the token contract
     function renounceOwnership() public virtual override onlyOwner {}
 
+    /// @notice Authorizes contract upgrades
+    /// @dev Only owner can upgrade the contract implementation using UUPS pattern
+    /// @param newImplementation Address of the new implementation contract
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @notice	Returns the number of decimals used for token amounts

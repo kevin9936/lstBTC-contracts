@@ -18,8 +18,8 @@ library TimeSeriesDataLib {
     /// @notice	Structure for storing time-series data
     /// @dev	Uses separate arrays and mappings for efficient storage and retrieval
     struct TimeSeriesData {
-        uint64[] timestamps;        // Array of timestamps for binary search
-        mapping(uint64 => bytes) values; // Mapping from timestamp to encoded value
+        uint64[] timestamps;                // Array of timestamps for binary search
+        mapping(uint64 => bytes) values;    // Mapping from timestamp to encoded value
     }
 
     /// @notice	Initializes a time-series data structure with the first entry
@@ -58,8 +58,9 @@ library TimeSeriesDataLib {
             return;
         }
 
-        uint64 lastTimestamp =
-            _timeSeriesData.timestamps[_timeSeriesData.timestamps.length - 1];
+        uint64 lastTimestamp = _timeSeriesData.timestamps[
+            _timeSeriesData.timestamps.length - 1
+        ];
 
         require(
             timestamp > lastTimestamp,
@@ -75,6 +76,24 @@ library TimeSeriesDataLib {
             _timeSeriesData.timestamps.push(timestamp);
             _timeSeriesData.values[timestamp] = _encodedValue;
         }
+    }
+
+    /// @notice Removes the most recent entry from the time-series data
+    /// @dev    This is the counterpart to `append`. It deletes the last timestamp and its associated value.
+    ///         No action is taken if the time-series is empty.
+    /// @param  _timeSeriesData Storage reference to the time-series data
+    /// @return removed Whether an entry was successfully removed
+    function pop(
+        TimeSeriesData storage _timeSeriesData
+    ) internal returns (bool removed) {
+        uint256 len = _timeSeriesData.timestamps.length;
+        if (len == 0) { return false; }
+
+        uint64 timestamp = _timeSeriesData.timestamps[len - 1];
+        delete _timeSeriesData.values[timestamp];
+        _timeSeriesData.timestamps.pop();
+
+        return true;
     }
 
     /// @notice	Gets the value for a specific timestamp using binary search
@@ -104,7 +123,9 @@ library TimeSeriesDataLib {
         }
 
         if (_timeSeriesData.timestamps[left] <= _timestamp) {
-            encodedValue = _timeSeriesData.values[_timeSeriesData.timestamps[left]];
+            encodedValue = _timeSeriesData.values[
+                _timeSeriesData.timestamps[left]
+            ];
             exists = true;
         }
     }
@@ -120,7 +141,9 @@ library TimeSeriesDataLib {
         uint256 len = _timeSeriesData.timestamps.length;
         if (len == 0) { return (exists, encodedValue); }
 
-        encodedValue = _timeSeriesData.values[_timeSeriesData.timestamps[len - 1]];
+        encodedValue = _timeSeriesData.values[
+            _timeSeriesData.timestamps[len - 1]
+        ];
         exists = true;
     }
 }

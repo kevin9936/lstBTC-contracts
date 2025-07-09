@@ -23,9 +23,12 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
  * The contract maintains a time-series of exchange rates and ensures the rate
  * can only increase over time to protect token holders.
  */
-contract NavProviderLogic is INavProvider,
-    AccessControlBase, PausableUpgradeable, UUPSUpgradeable {
-
+contract NavProviderLogic is
+    INavProvider,
+    AccessControlBase,
+    PausableUpgradeable,
+    UUPSUpgradeable
+{
     // Thrown when exchange rate is not available for the requested timestamp
     error ExchangeRateUnavailable();
 
@@ -37,7 +40,6 @@ contract NavProviderLogic is INavProvider,
 
     // Thrown when wrapped BTC amount exceeds pegged BTC amount
     error PeggedBTCInvariantViolated(uint64 wrappedBTC, uint64 peggedBTC);
-
 
     // Number of decimal places for exchange rate calculations
     uint8 public constant EXCHANGE_RATE_DECIMALS = 8;
@@ -61,7 +63,7 @@ contract NavProviderLogic is INavProvider,
     using SafeCast for uint256;
     using TimeSeriesDataLib for TimeSeriesDataLib.TimeSeriesData;
 
-    /// @notice	Ensures only the bridge contract can call certain functions
+    /// @notice Ensures only the bridge contract can call certain functions
     modifier onlyBridge() {
         if (bridge != _msgSender()) { revert Unauthorized(_msgSender()); }
         _;
@@ -71,10 +73,10 @@ contract NavProviderLogic is INavProvider,
         _disableInitializers();
     }
 
-    /// @notice	Initializes the NAV provider
-    /// @dev	Sets up access control and initializes the exchange rate
-    /// @param	_admin	Default admin address with full control
-    /// @param	_governor	Governor address for operational decisions
+    /// @notice Initializes the NAV provider
+    /// @dev Sets up access control and initializes the exchange rate
+    /// @param _admin Default admin address with full control
+    /// @param _governor Governor address for operational decisions
     function initialize(
         address _admin,
         address _governor
@@ -172,28 +174,22 @@ contract NavProviderLogic is INavProvider,
     /// @return	decimals	Number of decimal places for the exchange rate
     function getExchangeRate(
         uint64 _timestamp
-    ) external override whenNotPaused view returns (
+    ) external view override whenNotPaused returns (
         uint64 exchangeRate,
         uint8 decimals
     ) {
-        (bool exists, bytes memory encodedValue) = exchangeRates.get(_timestamp);
-        if (!exists) { revert ExchangeRateUnavailable(); }
-
-        return (abi.decode(encodedValue, (uint64)), EXCHANGE_RATE_DECIMALS);
+        return _fetchExchangeRate(_timestamp);
     }
 
     /// @notice	Gets the latest exchange rate
     /// @dev	Reverts if no exchange rate is available
     /// @return	exchangeRate	Latest exchange rate
     /// @return	decimals	Number of decimal places for the exchange rate
-    function getLatestExchangeRate() public override whenNotPaused view returns (
+    function getLatestExchangeRate() external view override whenNotPaused returns (
         uint64 exchangeRate,
         uint8 decimals
     ) {
-        (bool exists, bytes memory encodedValue) = exchangeRates.getLatest();
-        if (!exists) { revert ExchangeRateUnavailable(); }
-
-        return (abi.decode(encodedValue, (uint64)), EXCHANGE_RATE_DECIMALS);
+        return _fetchLatestExchangeRate();
     }
 
     /// @notice	Refreshes the exchange rate based on current pegged BTC and token supply
@@ -208,8 +204,8 @@ contract NavProviderLogic is INavProvider,
             revert PeggedBTCInvariantViolated(wrappedBTC, peggedBTC);
         }
 
-        (uint64 oldExchangeRate, uint8 decimals) = getLatestExchangeRate();
-        uint256 rate = peggedBTC * (10 ** decimals) / wrappedBTC;
+        (uint64 oldExchangeRate, uint8 decimals) = _fetchLatestExchangeRate();
+        uint256 rate = (peggedBTC * (10 ** decimals)) / wrappedBTC;
         uint64 newExchangeRate = rate.toUint64();
 
         if (newExchangeRate < oldExchangeRate) {
@@ -220,5 +216,29 @@ contract NavProviderLogic is INavProvider,
             exchangeRates.append(abi.encode(newExchangeRate));
             emit ExchangeRateUpdated(oldExchangeRate, newExchangeRate);
         }
+    }
+
+    /// @dev Retrieves the exchange rate for a specific timestamp, reverts if none exists.
+    function _fetchExchangeRate(
+        uint64 _timestamp
+    ) internal view returns (
+        uint64 exchangeRate,
+        uint8 decimals
+    ) {
+        (bool exists, bytes memory encodedValue) = exchangeRates.get(_timestamp);
+        if (!exists) { revert ExchangeRateUnavailable(); }
+
+        return (abi.decode(encodedValue, (uint64)), EXCHANGE_RATE_DECIMALS);
+    }
+
+    /// @dev Retrieves the latest exchange rate from storage, reverts if none exists.
+    function _fetchLatestExchangeRate() internal view returns (
+        uint64 exchangeRate,
+        uint8 decimals
+    ) {
+        (bool exists, bytes memory encodedValue) = exchangeRates.getLatest();
+        if (!exists) { revert ExchangeRateUnavailable(); }
+
+        return (abi.decode(encodedValue, (uint64)), EXCHANGE_RATE_DECIMALS);
     }
 }

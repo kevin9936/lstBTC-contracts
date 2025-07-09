@@ -28,16 +28,16 @@ library PegRequestHelper {
 
     using SafeCast for uint256;
 
-    /// @notice	Analyzes a Bitcoin transfer to determine its type and custodian
-    /// @dev	Validates the transfer structure and checks whitelist entries for both sender and receiver addresses.
-    ///            Determines transfer type based on usage patterns and custodian groups
-    /// @param	_bridge	   Bridge contract for accessing whitelist registry and configuration
-    /// @param	_txId	   Bitcoin transaction ID
-    /// @param	_fromPkScripts	   Array of input script public keys
-    /// @param	_toPkScripts	   Array of output script public keys
-    /// @return	custodianId	   ID of the custodian involved in the transfer
-    /// @return	transferType	   Type of transfer (PegInDeposited, PegOutPaid, YieldReceived, etc.)
-    /// @return	outputAmount	   Amount transferred in satoshis
+    /// @notice Analyzes a Bitcoin transfer to determine its type and custodian
+    /// @dev Validates the transfer structure and checks whitelist entries for both sender and receiver addresses.
+    /// Determines transfer type based on usage patterns and custodian groups
+    /// @param _bridge Bridge contract for accessing whitelist registry and configuration
+    /// @param _txId Bitcoin transaction ID
+    /// @param _fromPkScripts Array of input script public keys
+    /// @param _toPkScripts Array of output script public keys
+    /// @return custodianId ID of the custodian involved in the transfer
+    /// @return transferType Type of transfer (PegInDeposited, PegOutPaid, YieldReceived, etc.)
+    /// @return outputAmount Amount transferred in satoshis
     function analyzeBTCTransfer(
         ILstBTCBridge _bridge,
         bytes32 _txId,
@@ -98,14 +98,14 @@ library PegRequestHelper {
         return (0, TransferType.Unknown, 0);
     }
 
-    /// @notice	Analyzes a wrapped BTC transfer to determine its type and custodian
-    /// @dev	Checks whitelist entries for both sender and receiver addresses.
-    ///            Only processes transfers within the same custodian group
-    /// @param	_bridge	   Bridge contract for accessing whitelist registry
-    /// @param	_fromAddress	   Address sending lstBTC tokens
-    /// @param	_toAddress	   Address receiving lstBTC tokens
-    /// @return	custodianId	   ID of the custodian involved in the transfer
-    /// @return	transferType	   Type of transfer (PegOutDeposited, PegInPaid, PegOutRefunded)
+    /// @notice Analyzes a wrapped BTC transfer to determine its type and custodian
+    /// @dev Checks whitelist entries for both sender and receiver addresses.
+    /// Only processes transfers within the same custodian group
+    /// @param _bridge Bridge contract for accessing whitelist registry
+    /// @param _fromAddress Address sending lstBTC tokens
+    /// @param _toAddress Address receiving lstBTC tokens
+    /// @return custodianId ID of the custodian involved in the transfer
+    /// @return transferType Type of transfer (PegOutDeposited, PegInPaid, PegOutRefunded)
     function analyzeWrappedBTCTransfer(
         ILstBTCBridge _bridge,
         address _fromAddress,
@@ -146,17 +146,17 @@ library PegRequestHelper {
         return (0, TransferType.Unknown);
     }
 
-    /// @notice	Initializes a peg-in request with calculated fees and amounts
-    /// @dev	Sets up the request structure with all necessary parameters.
-    ///            Calculates treasury fees and determines fee recipients
-    /// @param	_request	   Storage reference to the peg request
-    /// @param	_bridge	   Bridge contract for accessing configuration
-    /// @param	_blockHeight	   Bitcoin block height of the deposit
-    /// @param	_amount	   Amount of Bitcoin deposited (in satoshis)
-    /// @param	_custodianId	   ID of the custodian handling the request
-    /// @return	exchangeRate	   Exchange rate at the time of deposit
-    /// @return	recipients	   Array of treasury fee recipients
-    /// @return	recipientAmounts	   Array of amounts for each recipient
+    /// @notice Initializes a peg-in request with calculated fees and amounts
+    /// @dev Sets up the request structure with all necessary parameters.
+    /// Calculates treasury fees and determines fee recipients
+    /// @param _request Storage reference to the peg request
+    /// @param _bridge Bridge contract for accessing configuration
+    /// @param _blockHeight Bitcoin block height of the deposit
+    /// @param _amount Amount of Bitcoin deposited (in satoshis)
+    /// @param _custodianId ID of the custodian handling the request
+    /// @return exchangeRate Exchange rate at the time of deposit
+    /// @return recipients Array of treasury fee recipients
+    /// @return recipientAmounts Array of amounts for each recipient
     function initializePegInRequest(
         PegRequest storage _request,
         ILstBTCBridge _bridge,
@@ -190,16 +190,16 @@ library PegRequestHelper {
         _request.status = PegStatus.Pending;
     }
 
-    /// @notice	Initializes a peg-out request with calculated fees and amounts
-    /// @dev	Sets up the request structure with all necessary parameters.
-    ///            Calculates transaction and treasury fees
-    /// @param	_request	   Storage reference to the peg request
-    /// @param	_bridge	   Bridge contract for accessing configuration
-    /// @param	_amount	   Amount of lstBTC to redeem (in satoshis)
-    /// @param	_custodianId	   ID of the custodian handling the request
-    /// @return	exchangeRate	   Exchange rate at the time of request
-    /// @return	recipients	   Array of treasury fee recipients
-    /// @return	recipientAmounts	   Array of amounts for each recipient
+    /// @notice Initializes a peg-out request with calculated fees and amounts
+    /// @dev Sets up the request structure with all necessary parameters.
+    /// Calculates transaction and treasury fees
+    /// @param _request Storage reference to the peg request
+    /// @param _bridge Bridge contract for accessing configuration
+    /// @param _amount Amount of lstBTC to redeem (in satoshis)
+    /// @param _custodianId ID of the custodian handling the request
+    /// @return exchangeRate Exchange rate at the time of request
+    /// @return recipients Array of treasury fee recipients
+    /// @return recipientAmounts Array of amounts for each recipient
     function initializePegOutRequest(
         PegRequest storage _request,
         ILstBTCBridge _bridge,
@@ -232,13 +232,13 @@ library PegRequestHelper {
         _request.status = PegStatus.Pending;
     }
 
-    /// @notice	Rejects a peg-in request and marks it for refund
-    /// @dev	Validates request status and custodian ID.
-    ///         Changes status to PendingRefund
-    /// @param	_request	   Storage reference to the peg request
-    /// @param	_custodianId	   ID of the custodian rejecting the request
-    /// @param	_batchId	   ID of the batch containing this request
-    /// @return	refundAmount	   Amount to be refunded (original deposit amount)
+    /// @notice Rejects a peg-in request and marks it for refund
+    /// @dev Validates request status and custodian ID.
+    /// Changes status to PendingRefund
+    /// @param _request Storage reference to the peg request
+    /// @param _custodianId ID of the custodian rejecting the request
+    /// @param _batchId ID of the batch containing this request
+    /// @return refundAmount Amount to be refunded (original deposit amount)
     function rejectPegInRequest(
         PegRequest storage _request,
         uint32 _custodianId,
@@ -253,13 +253,13 @@ library PegRequestHelper {
         return _request.amount;
     }
 
-    /// @notice	Rejects a peg-out request and marks it for refund
-    /// @dev	Validates request status and custodian ID.
-    ///         Changes status to PendingRefund
-    /// @param	_request	   Storage reference to the peg request
-    /// @param	_custodianId	   ID of the custodian rejecting the request
-    /// @param	_batchId	   ID of the batch containing this request
-    /// @return	refundAmount	   Amount to be refunded (original lstBTC amount)
+    /// @notice Rejects a peg-out request and marks it for refund
+    /// @dev Validates request status and custodian ID.
+    /// Changes status to PendingRefund
+    /// @param _request Storage reference to the peg request
+    /// @param _custodianId ID of the custodian rejecting the request
+    /// @param _batchId ID of the batch containing this request
+    /// @return refundAmount Amount to be refunded (original lstBTC amount)
     function rejectPegOutRequest(
         PegRequest storage _request,
         uint32 _custodianId,
@@ -274,13 +274,13 @@ library PegRequestHelper {
         return _request.amount;
     }
 
-    /// @notice	Settles a peg-out request by processing payout or refund
-    /// @dev	Validates request status and custodian ID.
-    ///         Updates request status based on settlement type
-    /// @param	_request	   Storage reference to the peg request
-    /// @param	_custodianId	   ID of the custodian settling the request
-    /// @param	_status	   Expected status for settlement (PendingPayout or PendingRefund)
-    /// @return	settledAmount	   Amount settled (net amount for payout, original amount for refund)
+    /// @notice Settles a peg-out request by processing payout or refund
+    /// @dev Validates request status and custodian ID.
+    /// Updates request status based on settlement type
+    /// @param _request Storage reference to the peg request
+    /// @param _custodianId ID of the custodian settling the request
+    /// @param _status Expected status for settlement (PendingPayout or PendingRefund)
+    /// @return settledAmount Amount settled (net amount for payout, original amount for refund)
     function settlePegOutRequest(
         PegRequest storage _request,
         uint32 _custodianId,
@@ -300,13 +300,13 @@ library PegRequestHelper {
         require(settledAmount != 0, "PegRequestHelper: invalid settled amount");
     }
 
-    /// @notice	Settles a peg-in request by processing payout or refund
-    /// @dev	Validates request status and custodian ID.
-    ///         Updates request status based on settlement type
-    /// @param	_request	   Storage reference to the peg request
-    /// @param	_custodianId	   ID of the custodian settling the request
-    /// @param	_status	   Expected status for settlement (PendingPayout or PendingRefund)
-    /// @return	settledAmount	   Amount settled (net amount for payout, original amount for refund)
+    /// @notice Settles a peg-in request by processing payout or refund
+    /// @dev Validates request status and custodian ID.
+    /// Updates request status based on settlement type
+    /// @param _request Storage reference to the peg request
+    /// @param _custodianId ID of the custodian settling the request
+    /// @param _status Expected status for settlement (PendingPayout or PendingRefund)
+    /// @return settledAmount Amount settled (net amount for payout, original amount for refund)
     function settlePegInRequest(
         PegRequest storage _request,
         uint32 _custodianId,
@@ -362,15 +362,15 @@ library PegRequestHelper {
         recipientAmounts = splitAmounts(shares, _request.treasuryFee);
     }
 
-    /// @notice	Validates a standard Bitcoin transfer structure for peg-in/peg-out operations
-    /// @dev	Validates transaction structure, script authenticity, and amount verification.
-    ///         Ensures external parameters match on-chain transaction data and security requirements
-    /// @param	_bridge	   Bridge contract for accessing bitcoin relay and whitelist registry
-    /// @param	_txId	   Bitcoin transaction ID to validate
-    /// @param	_fromPkScripts	   Deduplicated input pkScripts from transaction inputs
-    /// @param	_toPkScripts	   Deduplicated output pkScripts from transaction outputs
-    /// @return	isValid	   True if transfer structure is valid and secure
-    /// @return	amount	   Validated transfer amount in satoshis
+    /// @notice Validates a standard Bitcoin transfer structure for peg-in/peg-out operations
+    /// @dev Validates transaction structure, script authenticity, and amount verification.
+    /// Ensures external parameters match on-chain transaction data and security requirements
+    /// @param _bridge Bridge contract for accessing bitcoin relay and whitelist registry
+    /// @param _txId Bitcoin transaction ID to validate
+    /// @param _fromPkScripts Deduplicated input pkScripts from transaction inputs
+    /// @param _toPkScripts Deduplicated output pkScripts from transaction outputs
+    /// @return isValid True if transfer structure is valid and secure
+    /// @return amount Validated transfer amount in satoshis
     function validateStandardTransfer(
         ILstBTCBridge _bridge,
         bytes32 _txId,
@@ -446,15 +446,15 @@ library PegRequestHelper {
         require(isValid && amount != 0, "PegRequestHelper: invalid output pkScript");
     }
 
-    /// @notice	Calculates mint amounts for peg-in operations
-    /// @dev	Determines exchange rate, treasury fees, and net mintable amount.
-    ///         Validates minimum deposit requirements and applies fee calculations
-    /// @param	_bridge	   Bridge contract for accessing configuration
-    /// @param	_amount	   Amount of Bitcoin deposited (in satoshis)
-    /// @param	_depositedAt	   Timestamp when deposit was made
-    /// @return	exchangeRate	   Exchange rate at deposit time
-    /// @return	treasuryFee	   Treasury fee amount in lstBTC
-    /// @return	netAmount	   Net amount to mint after fees
+    /// @notice Calculates mint amounts for peg-in operations
+    /// @dev Determines exchange rate, treasury fees, and net mintable amount.
+    /// Validates minimum deposit requirements and applies fee calculations
+    /// @param _bridge Bridge contract for accessing configuration
+    /// @param _amount Amount of Bitcoin deposited (in satoshis)
+    /// @param _depositedAt Timestamp when deposit was made
+    /// @return exchangeRate Exchange rate at deposit time
+    /// @return treasuryFee Treasury fee amount in lstBTC
+    /// @return netAmount Net amount to mint after fees
     function calculatePegInMintAmounts(
         ILstBTCBridge _bridge,
         uint64 _amount,
@@ -481,16 +481,16 @@ library PegRequestHelper {
         netAmount = mintableAmount - treasuryFee;
     }
 
-    /// @notice	Calculates burn amounts for peg-out operations
-    /// @dev	Determines exchange rate, fees, and net redeemable amount.
-    ///         Validates minimum redeem requirements and applies fee calculations
-    /// @param	_bridge	   Bridge contract for accessing configuration
-    /// @param	_amount	   Amount of lstBTC to burn (in satoshis)
-    /// @param	_depositedAt	   Timestamp when request was made
-    /// @return	exchangeRate	   Exchange rate at request time
-    /// @return	transactionFee	   Fixed transaction fee in satoshis
-    /// @return	treasuryFee	   Treasury fee amount in lstBTC
-    /// @return	netAmount	   Net amount to redeem after fees
+    /// @notice Calculates burn amounts for peg-out operations
+    /// @dev Determines exchange rate, fees, and net redeemable amount.
+    /// Validates minimum redeem requirements and applies fee calculations
+    /// @param _bridge Bridge contract for accessing configuration
+    /// @param _amount Amount of lstBTC to burn (in satoshis)
+    /// @param _depositedAt Timestamp when request was made
+    /// @return exchangeRate Exchange rate at request time
+    /// @return transactionFee Fixed transaction fee in satoshis
+    /// @return treasuryFee Treasury fee amount in lstBTC
+    /// @return netAmount Net amount to redeem after fees
     function calculatePegOutBurnAmounts(
         ILstBTCBridge _bridge,
         uint64 _amount,
@@ -528,12 +528,12 @@ library PegRequestHelper {
         netAmount = redeemableAmount - transactionFee;
     }
 
-    /// @notice	Splits a total amount among recipients based on their shares
-    /// @dev	Calculates proportional amounts for each recipient.
-    ///         Uses PERCENTAGE_BASE for precise percentage calculations
-    /// @param	_shares	   Array of share percentages for each recipient
-    /// @param	_totalAmount	   Total amount to be distributed
-    /// @return	amounts	   Array of amounts for each recipient
+    /// @notice Splits a total amount among recipients based on their shares
+    /// @dev Calculates proportional amounts for each recipient.
+    /// Uses PERCENTAGE_BASE for precise percentage calculations
+    /// @param _shares Array of share percentages for each recipient
+    /// @param _totalAmount Total amount to be distributed
+    /// @return amounts Array of amounts for each recipient
     function splitAmounts(
         uint16[] memory _shares,
         uint64 _totalAmount
@@ -550,11 +550,11 @@ library PegRequestHelper {
         }
     }
 
-    /// @notice	Compares two byte arrays for equality
-    /// @dev	Uses keccak256 hash for efficient comparison
-    /// @param	a	   First byte array to compare
-    /// @param	b	   Second byte array to compare
-    /// @return	True	if arrays are equal, false otherwise
+    /// @notice Compares two byte arrays for equality
+    /// @dev Uses keccak256 hash for efficient comparison
+    /// @param a First byte array to compare
+    /// @param b Second byte array to compare
+    /// @return True if arrays are equal, false otherwise
     function bytesEqual(bytes calldata a, bytes memory b) internal pure returns (bool) {
         if (a.length != b.length) {
             return false;

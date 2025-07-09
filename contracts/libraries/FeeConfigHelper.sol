@@ -19,11 +19,11 @@ library FeeConfigHelper {
 
     using TimeSeriesDataLib for TimeSeriesDataLib.TimeSeriesData;
 
-    /// @notice	Gets the amount threshold for a specific timestamp
-    /// @dev	Reverts if threshold is not available for the timestamp
-    /// @param	_amountThresholds	   Time-series data storage for amount thresholds
-    /// @param	_timestamp	   Timestamp to query threshold for
-    /// @return	amount	   Threshold amount at the specified timestamp
+    /// @notice Gets the amount threshold for a specific timestamp
+    /// @dev Reverts if threshold is not available for the timestamp
+    /// @param _amountThresholds Time-series data storage for amount thresholds
+    /// @param _timestamp Timestamp to query threshold for
+    /// @return amount Threshold amount at the specified timestamp
     function getAmountThreshold(
         TimeSeriesDataLib.TimeSeriesData storage _amountThresholds,
         uint64 _timestamp
@@ -34,11 +34,11 @@ library FeeConfigHelper {
         amount = abi.decode(encodedValue, (uint64));
     }
 
-    /// @notice	Gets the latest amount threshold
-    /// @dev	Returns false if no threshold is available
-    /// @param	_amountThresholds	   Time-series data storage for amount thresholds
-    /// @return	exists	   Whether a threshold exists
-    /// @return	amount	   Latest threshold amount
+    /// @notice Gets the latest amount threshold
+    /// @dev Returns false if no threshold is available
+    /// @param _amountThresholds Time-series data storage for amount thresholds
+    /// @return exists Whether a threshold exists
+    /// @return amount Latest threshold amount
     function getLatestAmountThreshold(
         TimeSeriesDataLib.TimeSeriesData storage _amountThresholds
     ) internal view returns (bool exists, uint64 amount) {
@@ -50,11 +50,11 @@ library FeeConfigHelper {
         }
     }
 
-    /// @notice	Gets the transaction fee for a specific timestamp
-    /// @dev	Reverts if fee is not available for the timestamp
-    /// @param	_transactionFees	   Time-series data storage for transaction fees
-    /// @param	_timestamp	   Timestamp to query fee for
-    /// @return	transactionFee	   Transaction fee at the specified timestamp
+    /// @notice Gets the transaction fee for a specific timestamp
+    /// @dev Reverts if fee is not available for the timestamp
+    /// @param _transactionFees Time-series data storage for transaction fees
+    /// @param _timestamp Timestamp to query fee for
+    /// @return transactionFee Transaction fee at the specified timestamp
     function getTransactionFee(
         TimeSeriesDataLib.TimeSeriesData storage _transactionFees,
         uint64 _timestamp
@@ -65,11 +65,11 @@ library FeeConfigHelper {
         transactionFee = abi.decode(encodedValue, (uint64));
     }
 
-    /// @notice	Gets the latest transaction fee
-    /// @dev	Returns false if no fee is available
-    /// @param	_transactionFees	   Time-series data storage for transaction fees
-    /// @return	exists	   Whether a fee exists
-    /// @return	transactionFee	   Latest transaction fee
+    /// @notice Gets the latest transaction fee
+    /// @dev Returns false if no fee is available
+    /// @param _transactionFees Time-series data storage for transaction fees
+    /// @return exists Whether a fee exists
+    /// @return transactionFee Latest transaction fee
     function getLatestTransactionFee(
         TimeSeriesDataLib.TimeSeriesData storage _transactionFees
     ) internal view returns (bool exists, uint64 transactionFee) {
@@ -81,11 +81,11 @@ library FeeConfigHelper {
         }
     }
 
-    /// @notice	Gets the treasury fee rate for a specific timestamp
-    /// @dev	Reverts if rate is not available for the timestamp
-    /// @param	_treasuryFeeRates	   Time-series data storage for treasury fee rates
-    /// @param	_timestamp	   Timestamp to query rate for
-    /// @return	rate	   Treasury fee rate at the specified timestamp
+    /// @notice Gets the treasury fee rate for a specific timestamp
+    /// @dev Reverts if rate is not available for the timestamp
+    /// @param _treasuryFeeRates Time-series data storage for treasury fee rates
+    /// @param _timestamp Timestamp to query rate for
+    /// @return rate Treasury fee rate at the specified timestamp
     function getTreasuryFeeRate(
         TimeSeriesDataLib.TimeSeriesData storage _treasuryFeeRates,
         uint64 _timestamp
@@ -96,11 +96,11 @@ library FeeConfigHelper {
         rate = abi.decode(encodedValue, (uint16));
     }
 
-    /// @notice	Gets the latest treasury fee rate
-    /// @dev	Returns false if no rate is available
-    /// @param	_treasuryFeeRates	   Time-series data storage for treasury fee rates
-    /// @return	exists	   Whether a rate exists
-    /// @return	rate	   Latest treasury fee rate
+    /// @notice Gets the latest treasury fee rate
+    /// @dev Returns false if no rate is available
+    /// @param _treasuryFeeRates Time-series data storage for treasury fee rates
+    /// @return exists Whether a rate exists
+    /// @return rate Latest treasury fee rate
     function getLatestTreasuryFeeRate(
         TimeSeriesDataLib.TimeSeriesData storage _treasuryFeeRates
     ) internal view returns (bool exists, uint16 rate) {
@@ -112,12 +112,12 @@ library FeeConfigHelper {
         }
     }
 
-    /// @notice	Gets the treasury fee shares for a specific timestamp
-    /// @dev	Reverts if shares are not available for the timestamp
-    /// @param	_treasuryFeeShares	   Time-series data storage for treasury fee shares
-    /// @param	_timestamp	   Timestamp to query shares for
-    /// @return	recipients	   Array of fee recipient addresses
-    /// @return	recipientAmounts	   Array of fee share amounts for each recipient
+    /// @notice Gets the treasury fee shares for a specific timestamp
+    /// @dev Reverts if shares are not available for the timestamp
+    /// @param _treasuryFeeShares Time-series data storage for treasury fee shares
+    /// @param _timestamp Timestamp to query shares for
+    /// @return recipients Array of fee recipient addresses
+    /// @return recipientAmounts Array of fee share amounts for each recipient
     function getTreasuryFeeShares(
         TimeSeriesDataLib.TimeSeriesData storage _treasuryFeeShares,
         uint64 _timestamp
@@ -131,12 +131,12 @@ library FeeConfigHelper {
         (recipients, recipientAmounts) = abi.decode(encodedValue, (address[], uint16[]));
     }
 
-    /// @notice	Gets the latest treasury fee shares
-    /// @dev	Returns false if no shares are available
-    /// @param	_treasuryFeeShares	   Time-series data storage for treasury fee shares
-    /// @return	exists	   Whether shares exist
-    /// @return	recipients	   Array of fee recipient addresses
-    /// @return	recipientAmounts	   Array of fee share amounts for each recipient
+    /// @notice Gets the latest treasury fee shares
+    /// @dev Returns false if no shares are available
+    /// @param _treasuryFeeShares Time-series data storage for treasury fee shares
+    /// @return exists Whether shares exist
+    /// @return recipients Array of fee recipient addresses
+    /// @return recipientAmounts Array of fee share amounts for each recipient
     function getLatestTreasuryFeeShares(
         TimeSeriesDataLib.TimeSeriesData storage _treasuryFeeShares
     ) internal view returns (
@@ -152,10 +152,10 @@ library FeeConfigHelper {
         }
     }
 
-    /// @notice	Sets a new amount threshold
-    /// @dev	Appends the threshold to the time-series data
-    /// @param	_amountThresholds	   Time-series data storage for amount thresholds
-    /// @param	_amount	   New threshold amount to set
+    /// @notice Sets a new amount threshold
+    /// @dev Appends the threshold to the time-series data
+    /// @param _amountThresholds Time-series data storage for amount thresholds
+    /// @param _amount New threshold amount to set
     function setAmountThreshold(
         TimeSeriesDataLib.TimeSeriesData storage _amountThresholds,
         uint64 _amount
@@ -163,10 +163,10 @@ library FeeConfigHelper {
         _amountThresholds.append(abi.encode(_amount));
     }
 
-    /// @notice	Sets a new transaction fee
-    /// @dev	Appends the fee to the time-series data
-    /// @param	_transactionFees	   Time-series data storage for transaction fees
-    /// @param	_amount	   New transaction fee to set
+    /// @notice Sets a new transaction fee
+    /// @dev Appends the fee to the time-series data
+    /// @param _transactionFees Time-series data storage for transaction fees
+    /// @param _amount New transaction fee to set
     function setTransactionFee(
         TimeSeriesDataLib.TimeSeriesData storage _transactionFees,
         uint64 _amount
@@ -174,10 +174,10 @@ library FeeConfigHelper {
         _transactionFees.append(abi.encode(_amount));
     }
 
-    /// @notice	Sets a new treasury fee rate
-    /// @dev	Appends the rate to the time-series data
-    /// @param	_treasuryFeeRates	   Time-series data storage for treasury fee rates
-    /// @param	_rate	   New treasury fee rate to set
+    /// @notice Sets a new treasury fee rate
+    /// @dev Appends the rate to the time-series data
+    /// @param _treasuryFeeRates Time-series data storage for treasury fee rates
+    /// @param _rate New treasury fee rate to set
     function setTreasuryFeeRate(
         TimeSeriesDataLib.TimeSeriesData storage _treasuryFeeRates,
         uint16 _rate
@@ -185,11 +185,11 @@ library FeeConfigHelper {
         _treasuryFeeRates.append(abi.encode(_rate));
     }
 
-    /// @notice	Sets new treasury fee shares
-    /// @dev	Appends the shares to the time-series data
-    /// @param	_treasuryFeeShares	   Time-series data storage for treasury fee shares
-    /// @param	_recipients	   Array of fee recipient addresses
-    /// @param	_shares	   Array of fee share amounts for each recipient
+    /// @notice Sets new treasury fee shares
+    /// @dev Appends the shares to the time-series data
+    /// @param _treasuryFeeShares Time-series data storage for treasury fee shares
+    /// @param _recipients Array of fee recipient addresses
+    /// @param _shares Array of fee share amounts for each recipient
     function setTreasuryFeeShares(
         TimeSeriesDataLib.TimeSeriesData storage _treasuryFeeShares,
         address[] calldata _recipients,

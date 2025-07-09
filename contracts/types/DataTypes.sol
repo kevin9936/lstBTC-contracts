@@ -36,8 +36,8 @@ library AddressUsage {
     uint8 constant REPAYMENT = 1 << 5;
 }
 
-/// @notice	Types of transfers that can occur in the protocol
-/// @dev	Used to categorize different types of Bitcoin and token transfers
+/// @notice Types of transfers that can occur in the protocol
+/// @dev Used to categorize different types of Bitcoin and token transfers
 enum TransferType {
     Unknown,        // Transfer type cannot be determined
     PegInDeposited, // Bitcoin deposited for peg-in (user -> operations)
@@ -51,8 +51,8 @@ enum TransferType {
     Repaid          // Bitcoin repaid to custodian
 }
 
-/// @notice	Status of a peg-in or peg-out request
-/// @dev	Tracks the lifecycle of requests through the protocol
+/// @notice Status of a peg-in or peg-out request
+/// @dev Tracks the lifecycle of requests through the protocol
 enum PegStatus {
     Unknown,        // Request status is unknown or invalid
     Pending,        // Request is pending finality confirmation
@@ -63,8 +63,8 @@ enum PegStatus {
     Refunded        // Request has been refunded successfully
 }
 
-/// @notice	Structure representing a peg-in or peg-out request
-/// @dev	Contains all necessary information for processing and tracking requests
+/// @notice Structure representing a peg-in or peg-out request
+/// @dev Contains all necessary information for processing and tracking requests
 struct PegRequest {
     uint64 amount;          // Original request amount (in satoshis)
     uint64 treasuryFee;     // Treasury fee amount (in satoshis)

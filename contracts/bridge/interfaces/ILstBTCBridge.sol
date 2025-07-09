@@ -13,45 +13,45 @@ import "./ILstBTCBridgeStorage.sol";
  * and integration with other protocol components.
  */
 interface ILstBTCBridge is ILstBTCBridgeStorage  {
-    /// @notice	Emitted when the config registry address is updated
-    /// @param	oldAddress	Previous config registry address
-    /// @param	newAddress	New config registry address
+    /// @notice Emitted when the config registry address is updated
+    /// @param oldAddress Previous config registry address
+    /// @param newAddress New config registry address
     event ConfigRegistryUpdated(address indexed oldAddress, address indexed newAddress);
 
-    /// @notice	Emitted when the whitelist registry address is updated
-    /// @param	oldAddress	Previous whitelist registry address
-    /// @param	newAddress	New whitelist registry address
+    /// @notice Emitted when the whitelist registry address is updated
+    /// @param oldAddress Previous whitelist registry address
+    /// @param newAddress New whitelist registry address
     event WhitelistRegistryUpdated(address indexed oldAddress, address indexed newAddress);
 
-    /// @notice	Emitted when the NAV provider address is updated
-    /// @param	oldAddress	Previous NAV provider address
-    /// @param	newAddress	New NAV provider address
+    /// @notice Emitted when the NAV provider address is updated
+    /// @param oldAddress Previous NAV provider address
+    /// @param newAddress New NAV provider address
     event NavProviderUpdated(address indexed oldAddress, address indexed newAddress);
 
-    /// @notice	Emitted when the Bitcoin relay address is updated
-    /// @param	oldAddress	Previous Bitcoin relay address
-    /// @param	newAddress	New Bitcoin relay address
+    /// @notice Emitted when the Bitcoin relay address is updated
+    /// @param oldAddress Previous Bitcoin relay address
+    /// @param newAddress New Bitcoin relay address
     event BitcoinRelayUpdated(address indexed oldAddress, address indexed newAddress);
 
-    /// @notice	Emitted when the lstBTC token address is updated
-    /// @param	oldAddress	Previous lstBTC token address
-    /// @param	newAddress	New lstBTC token address
+    /// @notice Emitted when the lstBTC token address is updated
+    /// @param oldAddress Previous lstBTC token address
+    /// @param newAddress New lstBTC token address
     event LstBTCUpdated(address indexed oldAddress, address indexed newAddress);
 
-    /// @notice	Emitted when a new relayer is added
-    /// @param	relayer	Address of the added relayer
+    /// @notice Emitted when a new relayer is added
+    /// @param relayer Address of the added relayer
     event RelayerAdded(address indexed relayer);
 
-    /// @notice	Emitted when a relayer is removed
-    /// @param	relayer	Address of the removed relayer
+    /// @notice Emitted when a relayer is removed
+    /// @param relayer Address of the removed relayer
     event RelayerRemoved(address indexed relayer);
 
-    /// @notice	Emitted when a batch of requests is processed successfully
-    /// @param	batchId	ID of the processed batch
-    /// @param	pegInIds	Array of peg-in request IDs in the batch
-    /// @param	pegOutIds	Array of peg-out request IDs in the batch
-    /// @param	pendingPayWrappedAmount	Total lstBTC amount pending payout
-    /// @param	pendingPayBTCAmount	Total Bitcoin amount pending payout
+    /// @notice Emitted when a batch of requests is processed successfully
+    /// @param batchId ID of the processed batch
+    /// @param pegInIds Array of peg-in request IDs in the batch
+    /// @param pegOutIds Array of peg-out request IDs in the batch
+    /// @param pendingPayWrappedAmount Total lstBTC amount pending payout
+    /// @param pendingPayBTCAmount Total Bitcoin amount pending payout
     event BatchProcessed(
         uint32 indexed batchId,
         uint256[] pegInIds,
@@ -60,12 +60,12 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
         uint64 pendingPayBTCAmount
     );
 
-    /// @notice	Emitted when a batch of requests is rejected
-    /// @param	batchId	ID of the rejected batch
-    /// @param	pegInIds	Array of peg-in request IDs in the batch
-    /// @param	pegOutIds	Array of peg-out request IDs in the batch
-    /// @param	pendingRefundBTCAmount	Total Bitcoin amount pending refund
-    /// @param	pendingRefundWrappedBTCAmount	Total lstBTC amount pending refund
+    /// @notice Emitted when a batch of requests is rejected
+    /// @param batchId ID of the rejected batch
+    /// @param pegInIds Array of peg-in request IDs in the batch
+    /// @param pegOutIds Array of peg-out request IDs in the batch
+    /// @param pendingRefundBTCAmount Total Bitcoin amount pending refund
+    /// @param pendingRefundWrappedBTCAmount Total lstBTC amount pending refund
     event BatchRejected(
         uint32 indexed batchId,
         uint256[] pegInIds,
@@ -74,21 +74,21 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
         uint64 pendingRefundWrappedBTCAmount
     );
 
-    /// @notice	Emitted when treasury fees are assigned to recipients
-    /// @param	requestId	ID of the request generating the fees
-    /// @param	recipients	Array of fee recipient addresses
-    /// @param	amounts	Array of fee amounts for each recipient
+    /// @notice Emitted when treasury fees are assigned to recipients
+    /// @param requestId ID of the request generating the fees
+    /// @param recipients Array of fee recipient addresses
+    /// @param amounts Array of fee amounts for each recipient
     event TreasuryFeeAssigned(
         uint256 indexed requestId,
         address[] recipients,
         uint64[] amounts
     );
 
-    /// @notice	Emitted when treasury fees are accumulated in a batch
-    /// @param	batchId	ID of the batch containing the fees
-    /// @param	requestId	ID of the request generating the fees
-    /// @param	recipients	Array of fee recipient addresses
-    /// @param	amounts	Array of fee amounts for each recipient
+    /// @notice Emitted when treasury fees are accumulated in a batch
+    /// @param batchId ID of the batch containing the fees
+    /// @param requestId ID of the request generating the fees
+    /// @param recipients Array of fee recipient addresses
+    /// @param amounts Array of fee amounts for each recipient
     event TreasuryFeeAccumulated(
         uint32 indexed batchId,
         uint256 indexed requestId,
@@ -96,17 +96,17 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
         uint64[] amounts
     );
 
-    /// @notice	Emitted when a new peg-in request is created
-    /// @param	requestId	ID of the created request
-    /// @param	custodianId	ID of the custodian handling the request
-    /// @param	bitcoinTxId	Bitcoin transaction ID of the deposit
-    /// @param	sender	Bitcoin script public key of the sender
-    /// @param	receiver	Bitcoin script public key of the receiver
-    /// @param	amount	Amount of Bitcoin deposited (in satoshis)
-    /// @param	exchangeRate	Exchange rate at the time of deposit
-    /// @param	recipients	Array of treasury fee recipients
-    /// @param	recipientAmounts	Array of fee amounts for each recipient
-    /// @param	netAmount	Net amount after fees (in satoshis)
+    /// @notice Emitted when a new peg-in request is created
+    /// @param requestId ID of the created request
+    /// @param custodianId ID of the custodian handling the request
+    /// @param bitcoinTxId Bitcoin transaction ID of the deposit
+    /// @param sender Bitcoin script public key of the sender
+    /// @param receiver Bitcoin script public key of the receiver
+    /// @param amount Amount of Bitcoin deposited (in satoshis)
+    /// @param exchangeRate Exchange rate at the time of deposit
+    /// @param recipients Array of treasury fee recipients
+    /// @param recipientAmounts Array of fee amounts for each recipient
+    /// @param netAmount Net amount after fees (in satoshis)
     event PegInCreated(
         uint256 indexed requestId,
         uint32 indexed custodianId,
@@ -120,12 +120,12 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
         uint64 netAmount
     );
 
-    /// @notice	Emitted when a batch of peg-in requests is refunded
-    /// @param	batchId	ID of the batch being refunded
-    /// @param	bitcoinTxId	Bitcoin transaction ID of the refund
-    /// @param	requestIds	Array of request IDs in the batch
-    /// @param	totalAmount	Total amount refunded (in satoshis)
-    /// @param	isCompleted	Whether this completes the batch refund
+    /// @notice Emitted when a batch of peg-in requests is refunded
+    /// @param batchId ID of the batch being refunded
+    /// @param bitcoinTxId Bitcoin transaction ID of the refund
+    /// @param requestIds Array of request IDs in the batch
+    /// @param totalAmount Total amount refunded (in satoshis)
+    /// @param isCompleted Whether this completes the batch refund
     event PegInBatchRefunded(
         uint64 indexed batchId,
         bytes32 indexed bitcoinTxId,
@@ -134,11 +134,11 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
         bool isCompleted
     );
 
-    /// @notice	Emitted when a batch of peg-in requests is paid out
-    /// @param	batchId	ID of the batch being paid
-    /// @param	requestIds	Array of request IDs in the batch
-    /// @param	totalAmount	Total amount paid out (in lstBTC)
-    /// @param	isCompleted	Whether this completes the batch payout
+    /// @notice Emitted when a batch of peg-in requests is paid out
+    /// @param batchId ID of the batch being paid
+    /// @param requestIds Array of request IDs in the batch
+    /// @param totalAmount Total amount paid out (in lstBTC)
+    /// @param isCompleted Whether this completes the batch payout
     event PegInBatchPaid(
         uint32 indexed batchId,
         uint256[] requestIds,
@@ -146,16 +146,16 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
         bool isCompleted
     );
 
-    /// @notice	Emitted when a new peg-out request is created
-    /// @param	requestId	ID of the created request
-    /// @param	custodianId	ID of the custodian handling the request
-    /// @param	sender	Address of the lstBTC sender
-    /// @param	receiver	Address of the lstBTC receiver
-    /// @param	amount	Amount of lstBTC to redeem (in satoshis)
-    /// @param	exchangeRate	Exchange rate at the time of request
-    /// @param	recipients	Array of treasury fee recipients
-    /// @param	recipientAmounts	Array of fee amounts for each recipient
-    /// @param	netAmount	Net amount after fees (in satoshis)
+    /// @notice Emitted when a new peg-out request is created
+    /// @param requestId ID of the created request
+    /// @param custodianId ID of the custodian handling the request
+    /// @param sender Address of the lstBTC sender
+    /// @param receiver Address of the lstBTC receiver
+    /// @param amount Amount of lstBTC to redeem (in satoshis)
+    /// @param exchangeRate Exchange rate at the time of request
+    /// @param recipients Array of treasury fee recipients
+    /// @param recipientAmounts Array of fee amounts for each recipient
+    /// @param netAmount Net amount after fees (in satoshis)
     event PegOutCreated(
         uint256 indexed requestId,
         uint32 indexed custodianId,
@@ -168,11 +168,11 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
         uint64 netAmount
     );
 
-    /// @notice	Emitted when a batch of peg-out requests is refunded
-    /// @param	batchId	ID of the batch being refunded
-    /// @param	requestIds	Array of request IDs in the batch
-    /// @param	totalAmount	Total amount refunded (in lstBTC)
-    /// @param	isCompleted	Whether this completes the batch refund
+    /// @notice Emitted when a batch of peg-out requests is refunded
+    /// @param batchId ID of the batch being refunded
+    /// @param requestIds Array of request IDs in the batch
+    /// @param totalAmount Total amount refunded (in lstBTC)
+    /// @param isCompleted Whether this completes the batch refund
     event PegOutBatchRefunded(
         uint32 indexed batchId,
         uint256[] requestIds,
@@ -180,12 +180,12 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
         bool isCompleted
     );
 
-    /// @notice	Emitted when a batch of peg-out requests is paid out
-    /// @param	batchId	ID of the batch being paid
-    /// @param	bitcoinTxId	Bitcoin transaction ID of the payout
-    /// @param	requestIds	Array of request IDs in the batch
-    /// @param	totalAmount	Total amount paid out (in satoshis)
-    /// @param	isCompleted	Whether this completes the batch payout
+    /// @notice Emitted when a batch of peg-out requests is paid out
+    /// @param batchId ID of the batch being paid
+    /// @param bitcoinTxId Bitcoin transaction ID of the payout
+    /// @param requestIds Array of request IDs in the batch
+    /// @param totalAmount Total amount paid out (in satoshis)
+    /// @param isCompleted Whether this completes the batch payout
     event PegOutBatchPaid(
         uint32 indexed batchId,
         bytes32 indexed bitcoinTxId,
@@ -201,12 +201,12 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
     //     uint64 totalYield
     // );
 
-    /// @notice	Emitted when Bitcoin is borrowed from a custodian
-    /// @param	custodianId	ID of the custodian providing the loan
-    /// @param	bitcoinTxId	Bitcoin transaction ID of the borrow
-    /// @param	borrowedAmount	Amount borrowed (in satoshis)
-    /// @param	custodianDebt	New debt level of the custodian
-    /// @param	totalDebt	Total debt across all custodians
+    /// @notice Emitted when Bitcoin is borrowed from a custodian
+    /// @param custodianId ID of the custodian providing the loan
+    /// @param bitcoinTxId Bitcoin transaction ID of the borrow
+    /// @param borrowedAmount Amount borrowed (in satoshis)
+    /// @param custodianDebt New debt level of the custodian
+    /// @param totalDebt Total debt across all custodians
     event Borrowed(
         uint32 indexed custodianId,
         bytes32 indexed bitcoinTxId,
@@ -215,12 +215,12 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
         uint64 totalDebt
     );
 
-    /// @notice	Emitted when Bitcoin is repaid to a custodian
-    /// @param	custodianId	ID of the custodian receiving the repayment
-    /// @param	bitcoinTxId	Bitcoin transaction ID of the repayment
-    /// @param	repaidAmount	Amount repaid (in satoshis)
-    /// @param	custodianDebt	New debt level of the custodian
-    /// @param	totalDebt	Total debt across all custodians
+    /// @notice Emitted when Bitcoin is repaid to a custodian
+    /// @param custodianId ID of the custodian receiving the repayment
+    /// @param bitcoinTxId Bitcoin transaction ID of the repayment
+    /// @param repaidAmount Amount repaid (in satoshis)
+    /// @param custodianDebt New debt level of the custodian
+    /// @param totalDebt Total debt across all custodians
     event Repaid(
         uint32 indexed custodianId,
         bytes32 indexed bitcoinTxId,
@@ -229,8 +229,8 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
         uint64 totalDebt
     );
 
-    /// @notice	Emitted when accumulated fees are claimed
-    /// @param	claimer	Address claiming the fees
-    /// @param	amount	Amount of fees claimed
+    /// @notice Emitted when accumulated fees are claimed
+    /// @param claimer Address claiming the fees
+    /// @param amount Amount of fees claimed
     event FeesClaimed(address indexed claimer, uint64 amount);
 }

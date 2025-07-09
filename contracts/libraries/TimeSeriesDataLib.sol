@@ -15,19 +15,19 @@ pragma solidity 0.8.4;
  * time-dependent values in the lstBTC protocol.
  */
 library TimeSeriesDataLib {
-    /// @notice	Structure for storing time-series data
-    /// @dev	Uses separate arrays and mappings for efficient storage and retrieval
+    /// @notice Structure for storing time-series data
+    /// @dev Uses separate arrays and mappings for efficient storage and retrieval
     struct TimeSeriesData {
         uint64[] timestamps;                // Array of timestamps for binary search
         mapping(uint64 => bytes) values;    // Mapping from timestamp to encoded value
     }
 
-    /// @notice	Initializes a time-series data structure with the first entry
-    /// @dev	Can only be called once per TimeSeriesData instance.
-    ///            Reverts if already initialized
-    /// @param	_timeSeriesData	   Storage reference to the time-series data
-    /// @param	_timestamp	   Initial timestamp for the first entry
-    /// @param	_encodedValue	   Encoded value to store at the timestamp
+    /// @notice Initializes a time-series data structure with the first entry
+    /// @dev Can only be called once per TimeSeriesData instance.
+    /// Reverts if already initialized
+    /// @param _timeSeriesData Storage reference to the time-series data
+    /// @param _timestamp Initial timestamp for the first entry
+    /// @param _encodedValue Encoded value to store at the timestamp
     function initialize(
         TimeSeriesData storage _timeSeriesData,
         uint64 _timestamp,
@@ -40,12 +40,12 @@ library TimeSeriesDataLib {
         _timeSeriesData.values[_timestamp] = _encodedValue;
     }
 
-    /// @notice	Appends a new value to the time-series data
-    /// @dev	Only adds a new entry if the value has changed from the last entry.
-    ///            Uses current block timestamp if no timestamp is provided.
-    ///            Ensures timestamps are strictly increasing
-    /// @param	_timeSeriesData	   Storage reference to the time-series data
-    /// @param	_encodedValue	   Encoded value to append
+    /// @notice Appends a new value to the time-series data
+    /// @dev Only adds a new entry if the value has changed from the last entry.
+    /// Uses current block timestamp if no timestamp is provided.
+    /// Ensures timestamps are strictly increasing
+    /// @param _timeSeriesData Storage reference to the time-series data
+    /// @param _encodedValue Encoded value to append
     function append(
         TimeSeriesData storage _timeSeriesData,
         bytes memory _encodedValue
@@ -78,11 +78,11 @@ library TimeSeriesDataLib {
         }
     }
 
-    /// @notice	Removes the most recent entry from the time-series data
-    /// @dev	   This is the counterpart to `append`. It deletes the last timestamp and its associated value.
-    ///         No action is taken if the time-series is empty.
-    /// @param		_timeSeriesData Storage reference to the time-series data
-    /// @return	removed	Whether an entry was successfully removed
+    /// @notice Removes the most recent entry from the time-series data
+    /// @dev This is the counterpart to `append`. It deletes the last timestamp and its associated value.
+    /// No action is taken if the time-series is empty.
+    /// @param _timeSeriesData Storage reference to the time-series data
+    /// @return removed Whether an entry was successfully removed
     function pop(
         TimeSeriesData storage _timeSeriesData
     ) internal returns (bool removed) {
@@ -96,13 +96,13 @@ library TimeSeriesDataLib {
         return true;
     }
 
-    /// @notice	Gets the value for a specific timestamp using binary search
-    /// @dev	Returns the value at the most recent timestamp <= the query timestamp.
-    ///            Returns false if no data exists or timestamp is before all data
-    /// @param	_timeSeriesData	   Storage reference to the time-series data
-    /// @param	_timestamp	   Timestamp to query value for
-    /// @return	exists	   Whether a value exists for the timestamp
-    /// @return	encodedValue	   The encoded value at the most recent timestamp <= query timestamp
+    /// @notice Gets the value for a specific timestamp using binary search
+    /// @dev Returns the value at the most recent timestamp <= the query timestamp.
+    /// Returns false if no data exists or timestamp is before all data
+    /// @param _timeSeriesData Storage reference to the time-series data
+    /// @param _timestamp Timestamp to query value for
+    /// @return exists Whether a value exists for the timestamp
+    /// @return encodedValue The encoded value at the most recent timestamp <= query timestamp
     function get(
         TimeSeriesData storage _timeSeriesData,
         uint64 _timestamp
@@ -130,11 +130,11 @@ library TimeSeriesDataLib {
         }
     }
 
-    /// @notice	Gets the latest value in the time-series data
-    /// @dev	Returns false if no data exists
-    /// @param	_timeSeriesData	   Storage reference to the time-series data
-    /// @return	exists	   Whether any data exists
-    /// @return	encodedValue	   The encoded value at the most recent timestamp
+    /// @notice Gets the latest value in the time-series data
+    /// @dev Returns false if no data exists
+    /// @param _timeSeriesData Storage reference to the time-series data
+    /// @return exists Whether any data exists
+    /// @return encodedValue The encoded value at the most recent timestamp
     function getLatest(
         TimeSeriesData storage _timeSeriesData
     ) internal view returns (bool exists, bytes memory encodedValue) {

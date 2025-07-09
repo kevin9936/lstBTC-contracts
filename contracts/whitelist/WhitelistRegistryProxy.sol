@@ -16,10 +16,10 @@ import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
  */
 contract WhitelistRegistryProxy is ERC1967Proxy {
 
-    /// @notice	Initializes the proxy contract
-    /// @dev	Sets up the proxy with the implementation contract and initialization data
-    /// @param	_logic	Address of the implementation contract
-    /// @param	_data	Initialization data for the implementation contract
+    /// @notice Initializes the proxy contract
+    /// @dev Sets up the proxy with the implementation contract and initialization data
+    /// @param _logic Address of the implementation contract
+    /// @param _data Initialization data for the implementation contract
     constructor(
         address _logic,
         bytes memory _data

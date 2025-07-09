@@ -5,10 +5,11 @@ node_modules
 yarn-error.log
 
 typechain
-artifacts
 src/types
+artifacts
 cache
 dist
+export
 
 coverage*
 

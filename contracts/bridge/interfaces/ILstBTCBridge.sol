@@ -194,13 +194,6 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
         bool isCompleted
     );
 
-    // event YieldReceived(
-    //     uint32 indexed custodianId,
-    //     bytes32 indexed bitcoinTxId,
-    //     uint64 yieldAmount,
-    //     uint64 totalYield
-    // );
-
     /// @notice Emitted when Bitcoin is borrowed from a custodian
     /// @param custodianId ID of the custodian providing the loan
     /// @param bitcoinTxId Bitcoin transaction ID of the borrow

@@ -4,7 +4,7 @@ pragma solidity 0.8.4;
 import "../types/DataTypes.sol";
 import "./interfaces/IWhitelistRegistry.sol";
 import "../access/AccessControlBase.sol";
-import "bitcoin-transaction-helper/contracts/BtcUtils.sol";
+import "../libraries/BtcUtils.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**

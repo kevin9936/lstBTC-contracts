@@ -3,7 +3,7 @@ pragma solidity 0.8.4;
 
 import "../access/AccessControlBase.sol";
 import "./interfaces/IBitcoinRelay.sol";
-import "bitcoin-helper-lib/contracts/libraries/BitcoinHelper.sol";
+import "../libraries/BitcoinHelper.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";

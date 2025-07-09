@@ -48,8 +48,6 @@
 	"dependencies": {
 		"@openzeppelin/contracts": "4.9.3",
 		"@openzeppelin/contracts-upgradeable": "4.8.1",
-		"bitcoin-helper-lib": "1.0.1",
-		"bitcoin-transaction-helper": "0.2.3",
 		"bitcoinjs-lib": "6.1.5",
 		"chalk": "4.1.2",
 		"cli-table3": "0.6.3",

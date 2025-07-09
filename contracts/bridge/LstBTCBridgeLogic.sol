@@ -37,52 +37,52 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
  */
 contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     AccessControlBase, ReentrancyGuardUpgradeable, PausableUpgradeable, UUPSUpgradeable {
-     // Thrown when public key script array is empty
+    /// @notice	Thrown when public key script array is empty
     error EmptyPkScriptArray();
 
-    // Thrown when no whitelisted public key script is found
+    /// @notice	Thrown when no whitelisted public key script is found
     error WhitelistedPkScriptNotFound();
 
-    // Thrown when transaction has already been processed
+    /// @notice	Thrown when transaction has already been processed
     error DuplicateTransaction(bytes32 txId);
 
-    // Thrown when input public key scripts do not match expected values
+    /// @notice	Thrown when input public key scripts do not match expected values
     error InputPkScriptsMismatch(bytes32 txId, bytes[] pkScripts);
 
-    // Thrown when output public key scripts do not match expected values
+    /// @notice	Thrown when output public key scripts do not match expected values
     error OutputPkScriptsMismatch(bytes32 txId, bytes[] pkScripts);
 
-    // Thrown when transaction has non-zero lock time
+    /// @notice	Thrown when transaction has non-zero lock time
     error NonZeroLockTime(bytes32 txId);
 
-    // Thrown when batch has no requests to process
+    /// @notice	Thrown when batch has no requests to process
     error BatchRequestsEmpty();
 
-    // Thrown when batch request length exceeds bounds
+    /// @notice	Thrown when batch request length exceeds bounds
     error BatchRequestLengthOutOfBounds(uint256 requestLength);
 
-    // Thrown when batch is not found for the custodian
+    /// @notice	Thrown when batch is not found for the custodian
     error BatchNotFound(uint32 custodianId);
 
-    // Thrown when a pending batch already exists for the custodian
+    /// @notice	Thrown when a pending batch already exists for the custodian
     error PendingBatchFound(uint32 custodianId, uint32 batchId);
 
-    // Thrown when no peg-in requests to settle in the batch
+    /// @notice	Thrown when no peg-in requests to settle in the batch
     error NoPegInToSettle(uint32 custodianId, uint32 batchId);
 
-    // Thrown when no peg-out requests to settle in the batch
+    /// @notice	Thrown when no peg-out requests to settle in the batch
     error NoPegOutToSettle(uint32 custodianId, uint32 batchId);
 
-    // Thrown when request has not reached finality
+    /// @notice	Thrown when request has not reached finality
     error RequestNotFinalized(uint256 requestId, uint64 finalityHeight);
 
-    // Thrown when request status does not match expected status
+    /// @notice	Thrown when request status does not match expected status
     error InvalidRequestStatus(uint256 requestId, PegStatus expectedStatus, PegStatus actualStatus);
 
-    // Thrown when request custodian does not match expected custodian
+    /// @notice	Thrown when request custodian does not match expected custodian
     error InvalidRequestCustodian(uint256 requestId, uint32 expectedCustodian, uint32 actualCustodian);
 
-    // Thrown when settlement amount does not match expected amount
+    /// @notice	Thrown when settlement amount does not match expected amount
     error InvalidSettlementAmount(uint32 custodianId, uint32 batchId, uint64 expectedAmount, uint64 actualAmount);
 
     // Role for authorized relayers who can submit transaction proofs
@@ -92,15 +92,15 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     using SafeCast for uint256;
     using PegRequestHelper for PegRequest;
 
-    /// @notice Restricts function access to authorized relayers only
-    /// @dev Uses role-based access control to ensure only trusted relayers can submit proofs
+    /// @notice	Restricts function access to authorized relayers only
+    /// @dev	Uses role-based access control to ensure only trusted relayers can submit proofs
     modifier onlyRelayer() {
         _checkRole(ROLE_RELAYER, _msgSender());
         _;
     }
 
-    /// @notice Restricts function access to lstBTC token contract only
-    /// @dev Ensures only the lstBTC token contract can call certain functions
+    /// @notice	Restricts function access to lstBTC token contract only
+    /// @dev	Ensures only the lstBTC token contract can call certain functions
     modifier onlyLstBTC() {
         if (lstBTC != _msgSender()) { revert Unauthorized(_msgSender()); }
         _;
@@ -110,10 +110,10 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         _disableInitializers();
     }
 
-    /// @notice Initializes the bridge contract with admin and governor roles
-    /// @dev Sets up access control and initializes all upgradeable contracts
-    /// @param _admin Default admin address with full control
-    /// @param _governor Governor address for operational decisions
+    /// @notice	Initializes the bridge contract with admin and governor roles
+    /// @dev	Sets up access control and initializes all upgradeable contracts
+    /// @param	_admin	Default admin address with full control
+    /// @param	_governor	Governor address for operational decisions
     function initialize(
         address _admin,
         address _governor
@@ -126,26 +126,26 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         _setRoleAdmin(ROLE_RELAYER, ROLE_GOVERNOR);
     }
 
-    /// @notice Authorizes contract upgrades
-    /// @dev Only governor can upgrade the contract implementation
-    /// @param newImplementation Address of the new implementation contract
+    /// @notice	Authorizes contract upgrades
+    /// @dev	Only governor can upgrade the contract implementation
+    /// @param	newImplementation	Address of the new implementation contract
     function _authorizeUpgrade(address newImplementation) internal override onlyGovernor {}
 
-    /// @notice Pauses all bridge operations
-    /// @dev Only governor can pause the bridge in emergency situations
+    /// @notice	Pauses all bridge operations
+    /// @dev	Only governor can pause the bridge in emergency situations
     function pauseBridge() external onlyGovernor {
         _pause();
     }
 
-    /// @notice Unpauses bridge operations
-    /// @dev Only governor can unpause the bridge after emergency is resolved
+    /// @notice	Unpauses bridge operations
+    /// @dev	Only governor can unpause the bridge after emergency is resolved
     function unpauseBridge() external onlyGovernor {
         _unpause();
     }
 
-    /// @notice Updates the configuration registry address
-    /// @dev Only governor can update the config registry
-    /// @param _configRegistry New configuration registry address
+    /// @notice	Updates the configuration registry address
+    /// @dev	Only governor can update the config registry
+    /// @param	_configRegistry	New configuration registry address
     function setConfigRegistry(
         address _configRegistry
     ) external onlyGovernor nonZeroAddress(_configRegistry) {
@@ -155,9 +155,9 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         configRegistry = _configRegistry;
     }
 
-    /// @notice Updates the whitelist registry address
-    /// @dev Only governor can update the whitelist registry
-    /// @param _whitelistRegistry New whitelist registry address
+    /// @notice	Updates the whitelist registry address
+    /// @dev	Only governor can update the whitelist registry
+    /// @param	_whitelistRegistry	New whitelist registry address
     function setWhitelistRegistry(
         address _whitelistRegistry
     ) external onlyGovernor nonZeroAddress(_whitelistRegistry) {
@@ -167,9 +167,9 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         whitelistRegistry = _whitelistRegistry;
     }
 
-    /// @notice Updates the NAV provider address
-    /// @dev Only governor can update the NAV provider
-    /// @param _navProvider New NAV provider address
+    /// @notice	Updates the NAV provider address
+    /// @dev	Only governor can update the NAV provider
+    /// @param	_navProvider	New NAV provider address
     function setNavProvider(
         address _navProvider
     ) external onlyGovernor nonZeroAddress(_navProvider) {
@@ -179,9 +179,9 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         navProvider = _navProvider;
     }
 
-    /// @notice Updates the Bitcoin relay address
-    /// @dev Only governor can update the Bitcoin relay
-    /// @param _bitcoinRelay New Bitcoin relay address
+    /// @notice	Updates the Bitcoin relay address
+    /// @dev	Only governor can update the Bitcoin relay
+    /// @param	_bitcoinRelay	New Bitcoin relay address
     function setBitcoinRelay(
         address _bitcoinRelay
     ) external onlyGovernor nonZeroAddress(_bitcoinRelay) {
@@ -191,9 +191,9 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         bitcoinRelay = _bitcoinRelay;
     }
 
-    /// @notice Updates the lstBTC token address
-    /// @dev Only governor can update the lstBTC token contract
-    /// @param _lstBTC New lstBTC token address
+    /// @notice	Updates the lstBTC token address
+    /// @dev	Only governor can update the lstBTC token contract
+    /// @param	_lstBTC	New lstBTC token address
     function setLstBTC(address _lstBTC) external onlyGovernor nonZeroAddress(_lstBTC) {
         if (_lstBTC == lstBTC) { return; }
 
@@ -203,17 +203,17 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Submits a Bitcoin transaction proof for processing
     /// @dev	This is the main entry point for processing Bitcoin transactions.
-    ///		    Only authorized relayers can submit proofs.
-    ///		    Validates transaction, analyzes transfer type, and routes to appropriate handler.
+    ///            Only authorized relayers can submit proofs.
+    ///            Validates transaction, analyzes transfer type, and routes to appropriate handler.
     ///         Both _fromPkScripts and _toPkScripts contain deduplicated pkScripts from transaction parsing.
     ///         When _fromPkScripts has size 1 and represents a whitelisted pkScript, if outputs contain change,
     ///         the change pkScript must be placed as the last element in _toPkScripts array
-    /// @param	_rawTx	Raw Bitcoin transaction data
-    /// @param	_blockHeight	Bitcoin block height containing the transaction
-    /// @param	_merkleProof	Merkle proof for transaction inclusion
-    /// @param	_index	Transaction index in the block
-    /// @param	_fromPkScripts	Deduplicated input pkScripts from transaction inputs
-    /// @param	_toPkScripts	Deduplicated output pkScripts from transaction outputs (change pkScript as last element if exists)
+    /// @param	_rawTx	   Raw Bitcoin transaction data
+    /// @param	_blockHeight	   Bitcoin block height containing the transaction
+    /// @param	_merkleProof	   Merkle proof for transaction inclusion
+    /// @param	_index	   Transaction index in the block
+    /// @param	_fromPkScripts	   Deduplicated input pkScripts from transaction inputs
+    /// @param	_toPkScripts	   Deduplicated output pkScripts from transaction outputs (change pkScript as last element if exists)
     function submitTransactionProof(
         bytes calldata _rawTx,
         uint32 _blockHeight,
@@ -332,10 +332,10 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Handles lstBTC token transfer events
     /// @dev	Called by lstBTC token contract when transfers occur.
-    ///		    Analyzes transfer type and routes to appropriate handler
-    /// @param	_from	Address sending lstBTC tokens
-    /// @param	_to	Address receiving lstBTC tokens
-    /// @param	_amount	Amount of lstBTC tokens transferred
+    ///            Analyzes transfer type and routes to appropriate handler
+    /// @param	_from	   Address sending lstBTC tokens
+    /// @param	_to	   Address receiving lstBTC tokens
+    /// @param	_amount	   Amount of lstBTC tokens transferred
     function onLstBTCTransfer(
         address _from,
         address _to,
@@ -363,11 +363,11 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         }
     }
 
-    /// @notice    Processes a batch of peg-in and peg-out requests
-    /// @dev       Only whitelisted operators can process batches.
+    /// @notice	   Processes a batch of peg-in and peg-out requests
+    /// @dev	      Only whitelisted operators can process batches.
     ///            Mints lstBTC for approved peg-in requests and burns lstBTC for approved peg-out requests
-    /// @param     pegInIds    Array of peg-in request IDs to process
-    /// @param     pegOutIds   Array of peg-out request IDs to process
+    /// @param		   pegInIds    Array of peg-in request IDs to process
+    /// @param		   pegOutIds   Array of peg-out request IDs to process
     function processPegRequestBatch(
         uint256[] calldata pegInIds,
         uint256[] calldata pegOutIds
@@ -404,11 +404,11 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         );
     }
 
-    /// @notice    Rejects a batch of peg-in and peg-out requests
-    /// @dev       Only whitelisted operators can reject batches.
+    /// @notice	   Rejects a batch of peg-in and peg-out requests
+    /// @dev	      Only whitelisted operators can reject batches.
     ///            Refunds Bitcoin for rejected peg-in requests and lstBTC for rejected peg-out requests
-    /// @param     pegInIds    Array of peg-in request IDs to reject
-    /// @param     pegOutIds   Array of peg-out request IDs to reject
+    /// @param		   pegInIds    Array of peg-in request IDs to reject
+    /// @param		   pegOutIds   Array of peg-out request IDs to reject
     function rejectPegRequestBatch(
         uint256[] calldata pegInIds,
         uint256[] calldata pegOutIds
@@ -444,8 +444,8 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         );
     }
 
-    /// @notice    Allows users to claim accumulated fees
-    /// @dev       Transfers lstBTC fees to the caller and resets their claimable amount.
+    /// @notice	   Allows users to claim accumulated fees
+    /// @dev	      Transfers lstBTC fees to the caller and resets their claimable amount.
     ///            Only callable by users who have accumulated fees
     function claimFees() external nonReentrant {
         uint64 amount = claimableFees[_msgSender()];
@@ -458,11 +458,11 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     }
 
     /// @notice	Retrieves batch information by batch ID
-    /// @param	_batchId	The batch ID to query
-    /// @return	pegInIds	Array of peg-in request IDs in the batch
-    /// @return	pegOutIds	Array of peg-out request IDs in the batch
-    /// @return	isPegInSettled	Whether peg-in requests in the batch have been settled
-    /// @return	isPegOutSettled	Whether peg-out requests in the batch have been settled
+    /// @param	_batchId	   The batch ID to query
+    /// @return	pegInIds	   Array of peg-in request IDs in the batch
+    /// @return	pegOutIds	   Array of peg-out request IDs in the batch
+    /// @return	isPegInSettled	   Whether peg-in requests in the batch have been settled
+    /// @return	isPegOutSettled	   Whether peg-out requests in the batch have been settled
     function getBatch(
         uint32 _batchId
     ) public view returns (
@@ -480,8 +480,8 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     }
 
     /// @notice	Retrieves all batch IDs for a specific custodian
-    /// @param	_custodianId	The custodian ID to query
-    /// @return	Array of batch IDs associated with the custodian
+    /// @param	_custodianId	   The custodian ID to query
+    /// @return	Array	of batch IDs associated with the custodian
     function getCustodianBatchIds(
         uint32 _custodianId
     ) external view returns (uint32[] memory) {
@@ -489,8 +489,8 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     }
 
     /// @notice	Retrieves the latest batch ID for a specific custodian
-    /// @param	_custodianId	The custodian ID to query
-    /// @return	latestBatchId	The most recent batch ID for the custodian, or 0 if none exists
+    /// @param	_custodianId	   The custodian ID to query
+    /// @return	latestBatchId	   The most recent batch ID for the custodian, or 0 if none exists
     function getCustodianLatestBatchId(
         uint32 _custodianId
     ) public view returns (uint32 latestBatchId) {
@@ -500,9 +500,9 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         latestBatchId = batchIds[batchIds.length-1];
     }
 
-    /// @notice Retrieves the current debt amount for a specific custodian
-    /// @param _custodianId The custodian ID to query
-    /// @return debt The amount of debt associated with the custodian
+    /// @notice	Retrieves the current debt amount for a specific custodian
+    /// @param	_custodianId	The custodian ID to query
+    /// @return	debt	The amount of debt associated with the custodian
     function getCustodianDebt(
         uint32 _custodianId
     ) external view returns (uint64 debt) {
@@ -511,21 +511,21 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Allocates a new unique request ID
     /// @dev	Uses a counter and keccak256 hash to generate unique IDs
-    /// @return	New unique request ID
+    /// @return	New	unique request ID
     function _allocRequestId() internal returns(uint256) {
         return ++requestIdCounter;
     }
 
-    /// @notice Allocates a new unique batch ID
-    /// @dev Uses a simple incrementing counter
-    /// @return New unique batch ID
+    /// @notice	Allocates a new unique batch ID
+    /// @dev	Uses a simple incrementing counter
+    /// @return	New	unique batch ID
     function _allocBatchId() internal returns(uint32) {
         return ++batchIdCounter;
     }
 
     /// @notice	Validates that the caller is a whitelisted operator with no pending batches
     /// @dev	Checks whitelist entry and ensures no pending batches exist for the custodian
-    /// @return	custodianId	ID of the custodian if validation passes
+    /// @return	custodianId	   ID of the custodian if validation passes
     function _requireWhitelistedOperatorNoPendingBatch() internal view returns (uint32) {
         (
             uint32 custodianId,
@@ -552,8 +552,8 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Validates batch parameters for processing
     /// @dev	Ensures at least one request exists and arrays are within bounds
-    /// @param	pegInIds	Array of peg-in request IDs
-    /// @param	pegOutIds	Array of peg-out request IDs
+    /// @param	pegInIds	   Array of peg-in request IDs
+    /// @param	pegOutIds	   Array of peg-out request IDs
     function _requireValidBatchParams(
         uint256[] calldata pegInIds,
         uint256[] calldata pegOutIds
@@ -573,13 +573,13 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Creates a new peg-in request from Bitcoin deposit
     /// @dev	Allocates request ID, initializes request, and stages fee recipients
-    /// @param	_txId	Bitcoin transaction ID
-    /// @param	_blockHeight	Bitcoin block height
-    /// @param	_fromPkScript	Input script public key
-    /// @param	_toPkScript	Output script public key
-    /// @param	_amount	Amount of Bitcoin deposited (in satoshis)
-    /// @param	_custodianId	ID of the custodian handling the request
-    /// @return	requestId	ID of the created peg-in request
+    /// @param	_txId	   Bitcoin transaction ID
+    /// @param	_blockHeight	   Bitcoin block height
+    /// @param	_fromPkScript	   Input script public key
+    /// @param	_toPkScript	   Output script public key
+    /// @param	_amount	   Amount of Bitcoin deposited (in satoshis)
+    /// @param	_custodianId	   ID of the custodian handling the request
+    /// @return	requestId	   ID of the created peg-in request
     function _createPegInRequest(
         bytes32 _txId,
         uint32 _blockHeight,
@@ -618,8 +618,8 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Settles a processed peg-in batch by paying out lstBTC
     /// @dev	Calls internal settlement function and emits batch paid event
-    /// @param	_amount	Total amount to pay out (in lstBTC)
-    /// @param	_custodianId	ID of the custodian handling the batch
+    /// @param	_amount	   Total amount to pay out (in lstBTC)
+    /// @param	_custodianId	   ID of the custodian handling the batch
     function _settleProcessedPegInBatch(
         uint64 _amount,
         uint32 _custodianId
@@ -644,9 +644,9 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Settles a rejected peg-in batch by refunding Bitcoin
     /// @dev	Calls internal settlement function and emits batch refunded event
-    /// @param	_txId	Bitcoin transaction ID for the refund
-    /// @param	_amount	Total amount to refund (in satoshis)
-    /// @param	_custodianId	ID of the custodian handling the batch
+    /// @param	_txId	   Bitcoin transaction ID for the refund
+    /// @param	_amount	   Total amount to refund (in satoshis)
+    /// @param	_custodianId	   ID of the custodian handling the batch
     function _settleRejectedPegInBatch(
         bytes32 _txId,
         uint64 _amount,
@@ -673,12 +673,12 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Settles the latest peg-in batch for a custodian
     /// @dev	Processes all peg-in requests in the batch and marks batch as settled
-    /// @param	_custodianId	ID of the custodian
-    /// @param	_amount	Expected total settlement amount
-    /// @param	_status	Status to set for the requests (PendingPayout or PendingRefund)
-    /// @return	latestBatchId	ID of the batch being settled
-    /// @return	settledIds	Array of request IDs that were settled
-    /// @return	isCompleted	Whether the batch is fully completed
+    /// @param	_custodianId	   ID of the custodian
+    /// @param	_amount	   Expected total settlement amount
+    /// @param	_status	   Status to set for the requests (PendingPayout or PendingRefund)
+    /// @return	latestBatchId	   ID of the batch being settled
+    /// @return	settledIds	   Array of request IDs that were settled
+    /// @return	isCompleted	   Whether the batch is fully completed
     function _settleLatestPegInBatch(
         uint32 _custodianId,
         uint64 _amount,
@@ -717,11 +717,11 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Creates a new peg-out request for lstBTC redemption
     /// @dev	Allocates request ID, initializes request, and stages fee recipients
-    /// @param	_from	Address sending lstBTC tokens
-    /// @param	_to	Address receiving lstBTC tokens
-    /// @param	_amount	Amount of lstBTC to redeem (in satoshis)
-    /// @param	_custodianId	ID of the custodian handling the request
-    /// @return	requestId	ID of the created peg-out request
+    /// @param	_from	   Address sending lstBTC tokens
+    /// @param	_to	   Address receiving lstBTC tokens
+    /// @param	_amount	   Amount of lstBTC to redeem (in satoshis)
+    /// @param	_custodianId	   ID of the custodian handling the request
+    /// @return	requestId	   ID of the created peg-out request
     function _createPegOutRequest(
         address _from,
         address _to,
@@ -756,9 +756,9 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Settles a processed peg-out batch by paying out Bitcoin
     /// @dev	Calls internal settlement function and emits batch paid event
-    /// @param	_txId	Bitcoin transaction ID for the payout
-    /// @param	_amount	Total amount to pay out (in satoshis)
-    /// @param	_custodianId	ID of the custodian handling the batch
+    /// @param	_txId	   Bitcoin transaction ID for the payout
+    /// @param	_amount	   Total amount to pay out (in satoshis)
+    /// @param	_custodianId	   ID of the custodian handling the batch
     function _settleProcessedPegOutBatch(
         bytes32 _txId,
         uint64 _amount,
@@ -785,8 +785,8 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Settles a rejected peg-out batch by refunding lstBTC
     /// @dev	Calls internal settlement function and emits batch refunded event
-    /// @param	_amount	Total amount to refund (in lstBTC)
-    /// @param	_custodianId	ID of the custodian handling the batch
+    /// @param	_amount	   Total amount to refund (in lstBTC)
+    /// @param	_custodianId	   ID of the custodian handling the batch
     function _settleRejectedPegOutBatch(
         uint64 _amount,
         uint32 _custodianId
@@ -811,12 +811,12 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Settles the latest peg-out batch for a custodian
     /// @dev	Processes all peg-out requests in the batch and marks batch as settled
-    /// @param	_custodianId	ID of the custodian
-    /// @param	_amount	Expected total settlement amount
-    /// @param	_status	Status to set for the requests (PendingPayout or PendingRefund)
-    /// @return	latestBatchId	ID of the batch being settled
-    /// @return	settledIds	Array of request IDs that were settled
-    /// @return	isCompleted	Whether the batch is fully completed
+    /// @param	_custodianId	   ID of the custodian
+    /// @param	_amount	   Expected total settlement amount
+    /// @param	_status	   Status to set for the requests (PendingPayout or PendingRefund)
+    /// @return	latestBatchId	   ID of the batch being settled
+    /// @return	settledIds	   Array of request IDs that were settled
+    /// @return	isCompleted	   Whether the batch is fully completed
     function _settleLatestPegOutBatch(
         uint32 _custodianId,
         uint64 _amount,
@@ -854,9 +854,9 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Records a Bitcoin borrow operation for a custodian
     /// @dev	Increases custodian and total debt amounts
-    /// @param	_txId	Bitcoin transaction ID for the borrow
-    /// @param	_amount	Amount borrowed (in satoshis)
-    /// @param	_custodianId	ID of the custodian borrowing
+    /// @param	_txId	   Bitcoin transaction ID for the borrow
+    /// @param	_amount	   Amount borrowed (in satoshis)
+    /// @param	_custodianId	   ID of the custodian borrowing
     function _borrow(
         bytes32 _txId,
         uint64 _amount,
@@ -876,9 +876,9 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Records a Bitcoin repayment operation for a custodian
     /// @dev	Decreases custodian and total debt amounts
-    /// @param	_txId	Bitcoin transaction ID for the repayment
-    /// @param	_amount	Amount repaid (in satoshis)
-    /// @param	_custodianId	ID of the custodian repaying
+    /// @param	_txId	   Bitcoin transaction ID for the repayment
+    /// @param	_amount	   Amount repaid (in satoshis)
+    /// @param	_custodianId	   ID of the custodian repaying
     function _repay(
         bytes32 _txId,
         uint64 _amount,
@@ -902,10 +902,10 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Processes a batch of peg-in requests
     /// @dev	Iterates through all requests and processes them individually
-    /// @param	_requestIds	Array of peg-in request IDs to process
-    /// @param	_custodianId	ID of the custodian processing the batch
-    /// @param	_batchId	ID of the batch being processed
-    /// @return	totalNetAmount	Total net amount processed across all requests
+    /// @param	_requestIds	   Array of peg-in request IDs to process
+    /// @param	_custodianId	   ID of the custodian processing the batch
+    /// @param	_batchId	   ID of the batch being processed
+    /// @return	totalNetAmount	   Total net amount processed across all requests
     function _processPegInBatch(
         uint256[] calldata _requestIds,
         uint32 _custodianId,
@@ -921,10 +921,10 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Processes a single peg-in request
     /// @dev	Mints lstBTC tokens and updates pegged BTC amount
-    /// @param	_requestId	ID of the peg-in request to process
-    /// @param	_custodianId	ID of the custodian processing the request
-    /// @param	_batchId	ID of the batch containing this request
-    /// @return	netAmount	Net amount of lstBTC minted for the request
+    /// @param	_requestId	   ID of the peg-in request to process
+    /// @param	_custodianId	   ID of the custodian processing the request
+    /// @param	_batchId	   ID of the batch containing this request
+    /// @return	netAmount	   Net amount of lstBTC minted for the request
     function _processPegInRequest(
         uint256 _requestId,
         uint32 _custodianId,
@@ -971,10 +971,10 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Processes a batch of peg-out requests
     /// @dev	Iterates through all requests and processes them individually
-    /// @param	_requestIds	Array of peg-out request IDs to process
-    /// @param	_custodianId	ID of the custodian processing the batch
-    /// @param	_batchId	ID of the batch being processed
-    /// @return	totalNetAmount	Total net amount processed across all requests
+    /// @param	_requestIds	   Array of peg-out request IDs to process
+    /// @param	_custodianId	   ID of the custodian processing the batch
+    /// @param	_batchId	   ID of the batch being processed
+    /// @return	totalNetAmount	   Total net amount processed across all requests
     function _processPegOutBatch(
         uint256[] calldata _requestIds,
         uint32 _custodianId,
@@ -989,10 +989,10 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Processes a single peg-out request
     /// @dev	Burns lstBTC tokens and updates pegged BTC amount
-    /// @param	_requestId	ID of the peg-out request to process
-    /// @param	_custodianId	ID of the custodian processing the request
-    /// @param	_batchId	ID of the batch containing this request
-    /// @return	netAmount	Net amount of Bitcoin to be redeemed
+    /// @param	_requestId	   ID of the peg-out request to process
+    /// @param	_custodianId	   ID of the custodian processing the request
+    /// @param	_batchId	   ID of the batch containing this request
+    /// @return	netAmount	   Net amount of Bitcoin to be redeemed
     function _processPegOutRequest(
         uint256 _requestId,
         uint32 _custodianId,
@@ -1034,10 +1034,10 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Rejects a batch of peg-in requests
     /// @dev	Iterates through all requests and rejects them individually
-    /// @param	_requestIds	Array of peg-in request IDs to reject
-    /// @param	_custodianId	ID of the custodian rejecting the batch
-    /// @param	_batchId	ID of the batch being rejected
-    /// @return	pendingRefundAount	Total amount pending refund across all requests
+    /// @param	_requestIds	   Array of peg-in request IDs to reject
+    /// @param	_custodianId	   ID of the custodian rejecting the batch
+    /// @param	_batchId	   ID of the batch being rejected
+    /// @return	pendingRefundAount	   Total amount pending refund across all requests
     function _rejectPegInBatch(
         uint256[] calldata _requestIds,
         uint32 _custodianId,
@@ -1056,10 +1056,10 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Rejects a batch of peg-out requests
     /// @dev	Iterates through all requests and rejects them individually
-    /// @param	_requestIds	Array of peg-out request IDs to reject
-    /// @param	_custodianId	ID of the custodian rejecting the batch
-    /// @param	_batchId	ID of the batch being rejected
-    /// @return	pendingRefundAmount	Total amount pending refund across all requests
+    /// @param	_requestIds	   Array of peg-out request IDs to reject
+    /// @param	_custodianId	   ID of the custodian rejecting the batch
+    /// @param	_batchId	   ID of the batch being rejected
+    /// @return	pendingRefundAmount	   Total amount pending refund across all requests
     function _rejectPegOutBatch(
         uint256[] calldata _requestIds,
         uint32 _custodianId,
@@ -1078,8 +1078,8 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice	Settles treasury fees for a processed request
     /// @dev	Distributes fees to recipients and clears staged data
-    /// @param	_batchId	ID of the batch containing the request
-    /// @param	_requestId	ID of the request to settle fees for
+    /// @param	_batchId	   ID of the batch containing the request
+    /// @param	_requestId	   ID of the request to settle fees for
     function _settleTreasuryFees(
         uint32 _batchId,
         uint256 _requestId,

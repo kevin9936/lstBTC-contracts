@@ -29,41 +29,41 @@ contract NavProviderLogic is
     PausableUpgradeable,
     UUPSUpgradeable
 {
-    // Thrown when exchange rate is not available for the requested timestamp
+    /// @notice	Thrown when exchange rate is not available for the requested timestamp
     error ExchangeRateUnavailable();
 
-    // Thrown when new exchange rate is lower than the previous rate
+    /// @notice	Thrown when new exchange rate is lower than the previous rate
     error ExchangeRateMustIncrease(uint64 oldExchangeRate, uint64 newExchangeRate);
 
-    // Thrown when trying to decrease pegged BTC below zero
+    /// @notice	Thrown when trying to decrease pegged BTC below zero
     error PeggedBTCDecreaseOverflow(uint64 decreasedAmount, uint64 peggedBTC);
 
-    // Thrown when wrapped BTC amount exceeds pegged BTC amount
+    /// @notice	Thrown when wrapped BTC amount exceeds pegged BTC amount
     error PeggedBTCInvariantViolated(uint64 wrappedBTC, uint64 peggedBTC);
 
-    // Number of decimal places for exchange rate calculations
+    /// @notice	Number of decimal places for exchange rate calculations
     uint8 public constant EXCHANGE_RATE_DECIMALS = 8;
 
-    // Initial exchange rate (1:1 ratio)
+    /// @notice	Initial exchange rate (1:1 ratio)
     uint64 public constant INITIAL_EXCHANGE_RATE = 1e8;
 
-    // Address of the main bridge contract
+    /// @notice	Address of the main bridge contract
     address public override bridge;
 
-    // Total amount of Bitcoin pegged in the system (in satoshis)
+    /// @notice	Total amount of Bitcoin pegged in the system (in satoshis)
     uint64 public override peggedBTC;
 
-    // Total yield generated from custodian operations (in satoshis)
+    /// @notice	Total yield generated from custodian operations (in satoshis)
     uint64 public override yieldBTC;
 
-    // Time-series data for exchange rates
+    /// @notice	Time-series data for exchange rates
     TimeSeriesDataLib.TimeSeriesData internal exchangeRates;
 
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
     using TimeSeriesDataLib for TimeSeriesDataLib.TimeSeriesData;
 
-    /// @notice Ensures only the bridge contract can call certain functions
+    /// @notice	Ensures only the bridge contract can call certain functions
     modifier onlyBridge() {
         if (bridge != _msgSender()) { revert Unauthorized(_msgSender()); }
         _;
@@ -73,10 +73,10 @@ contract NavProviderLogic is
         _disableInitializers();
     }
 
-    /// @notice Initializes the NAV provider
-    /// @dev Sets up access control and initializes the exchange rate
-    /// @param _admin Default admin address with full control
-    /// @param _governor Governor address for operational decisions
+    /// @notice	Initializes the NAV provider
+    /// @dev	Sets up access control and initializes the exchange rate
+    /// @param	_admin	Default admin address with full control
+    /// @param	_governor	Governor address for operational decisions
     function initialize(
         address _admin,
         address _governor
@@ -120,8 +120,8 @@ contract NavProviderLogic is
 
     /// @notice	Increases the total pegged Bitcoin amount
     /// @dev	Only bridge can call this function.
-    ///		    Called when new Bitcoin is pegged into the system
-    /// @param	_increasedAmount	Amount of Bitcoin to add (in satoshis)
+    ///            Called when new Bitcoin is pegged into the system
+    /// @param	_increasedAmount	   Amount of Bitcoin to add (in satoshis)
     function increasePeggedBTC(uint64 _increasedAmount) public override onlyBridge {
         peggedBTC += _increasedAmount;
 
@@ -130,9 +130,9 @@ contract NavProviderLogic is
 
     /// @notice	Decreases the total pegged Bitcoin amount
     /// @dev	Only bridge can call this function.
-    ///		    Called when Bitcoin is unpegged from the system.
-    ///		    Cannot decrease below zero
-    /// @param	_decreasedAmount	Amount of Bitcoin to remove (in satoshis)
+    ///            Called when Bitcoin is unpegged from the system.
+    ///            Cannot decrease below zero
+    /// @param	_decreasedAmount	   Amount of Bitcoin to remove (in satoshis)
     function decreasePeggedBTC(uint64 _decreasedAmount) external override onlyBridge {
         if (_decreasedAmount >= peggedBTC) {
             revert PeggedBTCDecreaseOverflow(_decreasedAmount, peggedBTC);
@@ -144,11 +144,11 @@ contract NavProviderLogic is
 
     /// @notice	Records yield received from custodian operations
     /// @dev	Only bridge can call this function.
-    ///		    Increases both yieldBTC and peggedBTC.
-    ///		    Refreshes the exchange rate after yield accrual
-    /// @param	_txId	Bitcoin transaction ID that generated the yield
-    /// @param	_amount	Yield amount in satoshis
-    /// @param	_custodianId	ID of the custodian that generated the yield
+    ///            Increases both yieldBTC and peggedBTC.
+    ///            Refreshes the exchange rate after yield accrual
+    /// @param	_txId	   Bitcoin transaction ID that generated the yield
+    /// @param	_amount	   Yield amount in satoshis
+    /// @param	_custodianId	   ID of the custodian that generated the yield
     function accrueYield(
         bytes32 _txId,
         uint64 _amount,
@@ -169,9 +169,9 @@ contract NavProviderLogic is
 
     /// @notice	Gets the exchange rate for a specific timestamp
     /// @dev	Reverts if exchange rate is not available for the timestamp
-    /// @param	_timestamp	Timestamp to query exchange rate for
-    /// @return	exchangeRate	Exchange rate at the specified timestamp
-    /// @return	decimals	Number of decimal places for the exchange rate
+    /// @param	_timestamp	   Timestamp to query exchange rate for
+    /// @return	exchangeRate	   Exchange rate at the specified timestamp
+    /// @return	decimals	   Number of decimal places for the exchange rate
     function getExchangeRate(
         uint64 _timestamp
     ) external view override whenNotPaused returns (
@@ -183,8 +183,8 @@ contract NavProviderLogic is
 
     /// @notice	Gets the latest exchange rate
     /// @dev	Reverts if no exchange rate is available
-    /// @return	exchangeRate	Latest exchange rate
-    /// @return	decimals	Number of decimal places for the exchange rate
+    /// @return	exchangeRate	   Latest exchange rate
+    /// @return	decimals	   Number of decimal places for the exchange rate
     function getLatestExchangeRate() external view override whenNotPaused returns (
         uint64 exchangeRate,
         uint8 decimals
@@ -194,8 +194,8 @@ contract NavProviderLogic is
 
     /// @notice	Refreshes the exchange rate based on current pegged BTC and token supply
     /// @dev	Calculates new rate as peggedBTC / totalSupply.
-    ///		    Ensures rate can only increase to protect token holders.
-    ///		    Updates time-series data if rate has changed
+    ///            Ensures rate can only increase to protect token holders.
+    ///            Updates time-series data if rate has changed
     function _refreshExchangeRate() internal {
         uint256 totalSupply = IERC20(ILstBTCBridge(bridge).lstBTC()).totalSupply();
         uint64 wrappedBTC = totalSupply.toUint64();
@@ -218,7 +218,7 @@ contract NavProviderLogic is
         }
     }
 
-    /// @dev Retrieves the exchange rate for a specific timestamp, reverts if none exists.
+    /// @dev	Retrieves the exchange rate for a specific timestamp, reverts if none exists.
     function _fetchExchangeRate(
         uint64 _timestamp
     ) internal view returns (
@@ -231,7 +231,7 @@ contract NavProviderLogic is
         return (abi.decode(encodedValue, (uint64)), EXCHANGE_RATE_DECIMALS);
     }
 
-    /// @dev Retrieves the latest exchange rate from storage, reverts if none exists.
+    /// @dev	Retrieves the latest exchange rate from storage, reverts if none exists.
     function _fetchLatestExchangeRate() internal view returns (
         uint64 exchangeRate,
         uint8 decimals

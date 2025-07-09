@@ -50,33 +50,33 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
         _;
     }
 
-    // Mapping of address to minter role status
+    /// @notice	Mapping of address to minter role status
     mapping(address => bool) public minters;
 
-    // Mapping of address to burner role status
+    /// @notice	Mapping of address to burner role status
     mapping(address => bool) public burners;
 
-    // Mapping of address to blacklister role status
+    /// @notice	Mapping of address to blacklister role status
     mapping(address => bool) public blacklisters;
 
-    // Mapping of address to blacklisted status
+    /// @notice	Mapping of address to blacklisted status
     mapping(address => bool) internal blacklisted;
 
-    // Address of the bridge contract
+    /// @notice	Address of the bridge contract
     address public override bridge;
 
-    // Maximum amount of tokens that can be minted
+    /// @notice	Maximum amount of tokens that can be minted
     uint public override maxMintLimit;
 
     constructor() {
         _disableInitializers();
     }
 
-    /// @notice Initializes the lstBTC token contract
-    /// @dev Sets up the ERC20 token with name and symbol, initializes all upgradeable contracts,
+    /// @notice	Initializes the lstBTC token contract
+    /// @dev	Sets up the ERC20 token with name and symbol, initializes all upgradeable contracts,
     ///      and sets the maximum mint limit. Can only be called once during deployment.
-    /// @param _name Token name (e.g., "Liquid Staked Bitcoin")
-    /// @param _symbol Token symbol (e.g., "lstBTC")
+    /// @param	_name	Token name (e.g., "Liquid Staked Bitcoin")
+    /// @param	_symbol	Token symbol (e.g., "lstBTC")
     function initialize(
         string memory _name,
         string memory _symbol
@@ -92,18 +92,18 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
         maxMintLimit = 10 ** 8;
     }
 
-    /// @notice Disabled ownership renouncement for security
-    /// @dev Overrides the default renounceOwnership function to prevent accidental
+    /// @notice	Disabled ownership renouncement for security
+    /// @dev	Overrides the default renounceOwnership function to prevent accidental
     ///      loss of control over the token contract
     function renounceOwnership() public virtual override onlyOwner {}
 
-    /// @notice Authorizes contract upgrades
-    /// @dev Only owner can upgrade the contract implementation using UUPS pattern
-    /// @param newImplementation Address of the new implementation contract
+    /// @notice	Authorizes contract upgrades
+    /// @dev	Only owner can upgrade the contract implementation using UUPS pattern
+    /// @param	newImplementation	Address of the new implementation contract
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @notice	Returns the number of decimals used for token amounts
-    /// @return	Number of decimals (8 for lstBTC)
+    /// @return	Number	of decimals (8 for lstBTC)
     function decimals() public view virtual override(ERC20Upgradeable, ILstBTC) returns (uint8) {
         return 8;
     }
@@ -154,7 +154,7 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
 
     /// @notice	Check if an account is burner
     /// @param	account	The account which intended to be checked
-    /// @return	bool
+    /// @return	bool	Whether the account is a burner
     function isBurner(address account) internal view returns (bool) {
         require(account != address(0), "LstBTC: zero address");
         return burners[account];
@@ -189,7 +189,7 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
 
     /// @notice	Removes a minter
     /// @dev	Only owner can call this function
-    /// @param	account	The account which intended to be removed from minters
+    /// @param	account	   The account which intended to be removed from minters
     function removeMinter(address account) external override onlyOwner {
         require(isMinter(account), "LstBTC: does not have role");
         minters[account] = false;
@@ -198,7 +198,7 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
 
     /// @notice	Adds a burner
     /// @dev	Only owner can call this function
-    /// @param	account	The account which intended to be added to burners
+    /// @param	account	   The account which intended to be added to burners
     function addBurner(address account) external override onlyOwner {
         require(!isBurner(account), "LstBTC: already has role");
         burners[account] = true;
@@ -207,7 +207,7 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
 
     /// @notice	Removes a burner
     /// @dev	Only owner can call this function
-    /// @param	account	The account which intended to be removed from burners
+    /// @param	account	   The account which intended to be removed from burners
     function removeBurner(address account) external override onlyOwner {
         require(isBurner(account), "LstBTC: does not have role");
         burners[account] = false;
@@ -216,7 +216,7 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
 
     /// @notice	Burns LstBTC tokens of msg.sender
     /// @dev	Only burners can call this
-    /// @param	_amount	Amount of burnt tokens
+    /// @param	_amount	   Amount of burnt tokens
     function burn(uint _amount) external nonReentrant onlyBurner override returns (bool) {
         _burn(_msgSender(), _amount);
         emit Burn(_msgSender(), _msgSender(), _amount);
@@ -225,8 +225,8 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
 
     /// @notice	Burns LstBTC tokens of user
     /// @dev	Only owner can call this
-    /// @param	_user	Address of user whose lstBTC is burnt
-    /// @param	_amount	Amount of burnt tokens
+    /// @param	_user	   Address of user whose lstBTC is burnt
+    /// @param	_amount	   Amount of burnt tokens
     function ownerBurn(
         address _user,
         uint _amount
@@ -246,8 +246,8 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
 
     /// @notice	Mints LstBTC tokens for _receiver
     /// @dev	Only minters can call this
-    /// @param	_receiver	Address of token's receiver
-    /// @param	_amount	Amount of minted tokens
+    /// @param	_receiver	   Address of token's receiver
+    /// @param	_amount	   Amount of minted tokens
     function mint(
         address _receiver,
         uint _amount
@@ -261,7 +261,7 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
 
     /// @notice	Blacklist an account
     /// @dev	Only Blacklisters can call this
-    /// @param	_account	Account blacklisted
+    /// @param	_account	   Account blacklisted
     function blacklist(address _account) external override nonReentrant onlyBlackLister {
         blacklisted[_account] = true;
         emit Blacklisted(_account);
@@ -269,7 +269,7 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
 
     /// @notice	UnBlacklist an account
     /// @dev	Only Blacklisters can call this
-    /// @param	_account	Account unblacklisted
+    /// @param	_account	   Account unblacklisted
     function unBlacklist(address _account) external override nonReentrant onlyBlackLister {
         blacklisted[_account] = false;
         emit UnBlacklisted(_account);
@@ -277,9 +277,9 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
 
     /// @notice	Hook called before token transfer
     /// @dev	Prevents transfers to/from blacklisted addresses
-    /// @param	from	Address sending tokens
-    /// @param	to	Address receiving tokens
-    /// @param	/*amount*/	Amount being transferred (unused)
+    /// @param	from	   Address sending tokens
+    /// @param	to	   Address receiving tokens
+    /// @param	/*amount*/	   Amount being transferred (unused)
     function _beforeTokenTransfer(
         address from,
         address to,
@@ -291,9 +291,9 @@ contract LstBTCLogic is ILstBTC, ERC20Upgradeable,
 
     /// @notice	Hook called after token transfer
     /// @dev	Notifies bridge contract of transfer and validates amount
-    /// @param	from	Address that sent tokens
-    /// @param	to	Address that received tokens
-    /// @param	amount	Amount that was transferred
+    /// @param	from	   Address that sent tokens
+    /// @param	to	   Address that received tokens
+    /// @param	amount	   Amount that was transferred
     function _afterTokenTransfer(
         address from,
         address to,

@@ -21,56 +21,56 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
  * (user-managed) for flexible address organization.
  */
 contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUpgradeable {
-    // Thrown when the specified group does not exist
+    /// @notice	Thrown when the specified group does not exist
     error GroupNotFound(uint32 groupId);
 
-    // Thrown when trying to remove a reserved group
+    /// @notice	Thrown when trying to remove a reserved group
     error NotCustomGroup(uint32 groupId);
 
-    // Thrown when input arrays have different lengths
+    /// @notice	Thrown when input arrays have different lengths
     error EntryArrayLengthMismatch();
 
-    // Thrown when reserved group address has invalid usage
+    /// @notice	Thrown when reserved group address has invalid usage
     error InvalidReservedGroupAddressUsage(uint8 usage);
 
-    // Thrown when custom group address has invalid usage
+    /// @notice	Thrown when custom group address has invalid usage
     error InvalidCustomGroupAddressUsage(uint8 usage);
 
-    // Thrown when reserved group address has invalid format
+    /// @notice	Thrown when reserved group address has invalid format
     error InvalidReservedGroupAddressFormat(uint8 usage);
 
-    // Thrown when native address format is invalid
+    /// @notice	Thrown when native address format is invalid
     error InvalidNativeAddress(bytes rawAddress);
 
-    // Thrown when Bitcoin script public key format is invalid
+    /// @notice	Thrown when Bitcoin script public key format is invalid
     error InvalidBTCPkScript(bytes rawAddress);
 
-    // Thrown when address format is not supported
+    /// @notice	Thrown when address format is not supported
     error InvalidAddressFormat(uint8 format);
 
-    // Thrown when address is already used in the same group with same usage
+    /// @notice	Thrown when address is already used in the same group with same usage
     error AddressAlreadyUsed(bytes rawAddress, uint32 groupId, uint8 usage);
 
-    // Thrown when trying to add an entry that was previously removed
+    /// @notice	Thrown when trying to add an entry that was previously removed
     error CannotAddRemovedEntry(bytes rawAddress, uint32 groupId, uint8 usage);
 
-    // Thrown when entry status does not match expected status
+    /// @notice	Thrown when entry status does not match expected status
     error EntryStatusMismatch(EntryStatus expectedStatus, EntryStatus actualStatus);
 
-    // Thrown when entry group ID does not match expected group ID
+    /// @notice	Thrown when entry group ID does not match expected group ID
     error EntryGroupIdMismatch(uint32 expectedGroupId, uint32 actualGroupId);
 
-    // Thrown when entry usage does not match expected usage
+    /// @notice	Thrown when entry usage does not match expected usage
     error EntryUsageMismatch(uint8 expectedUsage, uint8 actualUsage);
 
-    /// @notice             Status of a whitelist entry
+    /// @notice	            Status of a whitelist entry
     enum EntryStatus {
         Unknown,    // Entry not found or invalid
         Active,     // Entry is active and can be used
         Removed     // Entry has been removed and cannot be used
     }
 
-    /// @notice             Structure representing a whitelist entry
+    /// @notice	            Structure representing a whitelist entry
     struct WhitelistEntry {
         uint8 usage;        // Bitmap of allowed usages (outbound, inbound, operations, etc.)
         uint8 format;       // Address format (native, BTC)
@@ -79,32 +79,31 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
         uint32 groupId;     // Group ID this entry belongs to
     }
 
-    /// @notice             Structure representing a whitelist group
+    /// @notice	            Structure representing a whitelist group
     struct WhitelistGroup {
         bool exists;        // Whether the group exists
         bytes32[] entryKeys; // Array of entry keys in this group
     }
 
-    // Whitelist address formats - Types of addresses supported
-    // Native chain address format (Ethereum, Core, etc.)
+    /// @notice	Native chain address format (Ethereum, Core, etc.)
     uint8 constant ADDRESS_FORMAT_NATIVE = 1;
 
-    // Bitcoin script public key format
+    /// @notice	Bitcoin script public key format
     uint8 constant ADDRESS_FORMAT_BTC = 2;
 
-    // Reserved group ID for system-managed addresses
+    /// @notice	Reserved group ID for system-managed addresses
     uint32 public constant RESERVED_GROUP_ID = 10000;
 
-    // Role for managing group members
+    /// @notice	Role for managing group members
     bytes32 public constant ROLE_GROUP_MEMBER_OPERATOR = keccak256("ROLE_GROUP_MEMBER_OPERATOR");
 
-    // Next available group ID for custom groups
+    /// @notice	Next available group ID for custom groups
     uint32 public nextGroupId;
 
-    // Mapping of group ID to group information
+    /// @notice	Mapping of group ID to group information
     mapping (uint256 => WhitelistGroup) public whitelistGroups;
 
-    // Mapping of entry key to entry information
+    /// @notice	Mapping of entry key to entry information
     mapping (bytes32 => WhitelistEntry) public whitelistEntries;
 
     using BtcUtils for bytes;
@@ -151,10 +150,10 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Creates a new whitelist group with initial entries
     /// @dev	Only governor can create groups.
-    ///		    Validates all entries before creating the group
-    /// @param	_rawAddresses	Array of raw address bytes
-    /// @param	_formats	Array of address formats (ADDRESS_FORMAT_NATIVE, ADDRESS_FORMAT_BTC)
-    /// @param	_usages	Array of usage bitmaps
+    ///            Validates all entries before creating the group
+    /// @param	_rawAddresses	   Array of raw address bytes
+    /// @param	_formats	   Array of address formats (ADDRESS_FORMAT_NATIVE, ADDRESS_FORMAT_BTC)
+    /// @param	_usages	   Array of usage bitmaps
     function createGroup(
         bytes[] calldata _rawAddresses,
         uint8[] calldata _formats,
@@ -190,8 +189,8 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Removes a custom whitelist group and marks all entries as removed
     /// @dev	Only governor can remove groups.
-    ///		    Cannot remove reserved groups
-    /// @param	_groupId	The group ID to remove
+    ///            Cannot remove reserved groups
+    /// @param	_groupId	   The group ID to remove
     function removeGroup(uint32 _groupId) external onlyGovernor {
         if (!isWhitelistedCustomGroup(_groupId)) {
             revert NotCustomGroup(_groupId);
@@ -216,11 +215,11 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Adds new entries to an existing group
     /// @dev	Only group member operators can add entries.
-    ///		    Validates all entries before adding them
-    /// @param	_groupId	The group ID to add entries to
-    /// @param	_rawAddresses	Array of raw address bytes
-    /// @param	_formats	Array of address formats
-    /// @param	_usages	Array of usage bitmaps
+    ///            Validates all entries before adding them
+    /// @param	_groupId	   The group ID to add entries to
+    /// @param	_rawAddresses	   Array of raw address bytes
+    /// @param	_formats	   Array of address formats
+    /// @param	_usages	   Array of usage bitmaps
     function addEntriesToGroup(
         uint32 _groupId,
         bytes[] calldata _rawAddresses,
@@ -251,13 +250,13 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
         );
     }
 
-    /// @notice Removes entries from a group by marking them as removed
-    /// @dev Only group member operators can remove entries.
-    ///		Validates all entries before removing them
-    /// @param _groupId The group ID to remove entries from
-    /// @param _rawAddresses Array of raw address bytes
-    /// @param _formats Array of address formats
-    /// @param _usages Array of usage bitmaps
+    /// @notice	Removes entries from a group by marking them as removed
+    /// @dev	Only group member operators can remove entries.
+    ///        Validates all entries before removing them
+    /// @param	_groupId	The group ID to remove entries from
+    /// @param	_rawAddresses	Array of raw address bytes
+    /// @param	_formats	Array of address formats
+    /// @param	_usages	Array of usage bitmaps
     function removeEntriesFromGroup(
         uint32 _groupId,
         bytes[] calldata _rawAddresses,
@@ -289,12 +288,12 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Updates entries in a group by replacing old addresses with new ones
     /// @dev	Only governor can update entries.
-    ///		    Validates all entries before updating them
-    /// @param	_groupId	The group ID to update entries in
-    /// @param	_formats	Array of new address formats
-    /// @param	_usages	Array of usage bitmaps
-    /// @param	_oldRawAddresses	Array of old raw address bytes
-    /// @param	_newRawAddresses	Array of new raw address bytes
+    ///            Validates all entries before updating them
+    /// @param	_groupId	   The group ID to update entries in
+    /// @param	_formats	   Array of new address formats
+    /// @param	_usages	   Array of usage bitmaps
+    /// @param	_oldRawAddresses	   Array of old raw address bytes
+    /// @param	_newRawAddresses	   Array of new raw address bytes
     function updateEntriesInGroup(
         uint32 _groupId,
         uint8[] calldata _formats,
@@ -330,15 +329,15 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
     }
 
     /// @notice	Checks if an address is whitelisted
-    /// @param	_rawAddress	Raw address bytes to check
-    /// @return	True if the address is whitelisted, false otherwise
+    /// @param	_rawAddress	   Raw address bytes to check
+    /// @return	True	if the address is whitelisted, false otherwise
     function isWhitelisted(bytes calldata _rawAddress) public override view returns (bool) {
         return whitelistEntries[keccak256(_rawAddress)].status == EntryStatus.Active;
     }
 
     /// @notice	Checks if a group is a whitelisted reserved group
-    /// @param	_groupId	Group ID to check
-    /// @return	True if the group is a whitelisted reserved group, false otherwise
+    /// @param	_groupId	   Group ID to check
+    /// @return	True	if the group is a whitelisted reserved group, false otherwise
     function isWhitelistedReservedGroup(uint32 _groupId) public override view returns (bool) {
         if (!whitelistGroups[_groupId].exists) { return false; }
 
@@ -346,8 +345,8 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
     }
 
     /// @notice	Checks if a group is a whitelisted custom group
-    /// @param	_groupId	Group ID to check
-    /// @return	True if the group is a whitelisted custom group, false otherwise
+    /// @param	_groupId	   Group ID to check
+    /// @return	True	if the group is a whitelisted custom group, false otherwise
     function isWhitelistedCustomGroup(uint32 _groupId) public override view returns (bool) {
         if (!whitelistGroups[_groupId].exists) { return false; }
 
@@ -355,8 +354,8 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
     }
 
     /// @notice	Checks if any of the provided addresses are whitelisted
-    /// @param	_rawAddresses	Array of raw address bytes to check
-    /// @return	True if any address is whitelisted, false otherwise
+    /// @param	_rawAddresses	   Array of raw address bytes to check
+    /// @return	True	if any address is whitelisted, false otherwise
     function containsWhitelistedEntry(
         bytes[] calldata _rawAddresses
     ) external override view returns (bool) {
@@ -372,9 +371,9 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
     }
 
     /// @notice	Gets whitelist entry information for an address
-    /// @param	_rawAddress	Raw address bytes to get entry for
-    /// @return	groupId	Group ID of the entry (0 if not found)
-    /// @return	usage	Usage bitmap of the entry (0 if not found)
+    /// @param	_rawAddress	   Raw address bytes to get entry for
+    /// @return	groupId	   Group ID of the entry (0 if not found)
+    /// @return	usage	   Usage bitmap of the entry (0 if not found)
     function getWhitelistEntry(
         bytes calldata _rawAddress
     ) external override view returns (
@@ -391,11 +390,11 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Gets whitelist group information for a specific group ID
     /// @dev	Returns the existence status and all entry keys for the specified group.
-    ///		    Entry keys are keccak256 hashes of raw addresses used as mapping keys.
-    ///		    This function allows querying group structure without accessing individual entries
-    /// @param	_groupId	ID of the group to query
-    /// @return	exists	Whether the group exists
-    /// @return	entryKeys	Array of entry keys (keccak256 hashes) in this group
+    ///            Entry keys are keccak256 hashes of raw addresses used as mapping keys.
+    ///            This function allows querying group structure without accessing individual entries
+    /// @param	_groupId	   ID of the group to query
+    /// @return	exists	   Whether the group exists
+    /// @return	entryKeys	   Array of entry keys (keccak256 hashes) in this group
     function getWhitelistGroup(
         uint32 _groupId
     ) external view returns (
@@ -408,9 +407,9 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Gets all group IDs based on filter criteria
     /// @dev	Returns a compacted array of group IDs meeting the criteria
-    /// @param	_includeReservedGroup	Whether to include the reserved group
-    /// @param	_includeEmptyGroup	Whether to include empty groups
-    /// @return	groupIds	Array of group IDs meeting the criteria
+    /// @param	_includeReservedGroup	   Whether to include the reserved group
+    /// @param	_includeEmptyGroup	   Whether to include empty groups
+    /// @return	groupIds	   Array of group IDs meeting the criteria
     function getGroupIds(
         bool _includeReservedGroup,
         bool _includeEmptyGroup
@@ -448,10 +447,10 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Gets all entries for a specific group
     /// @dev	Returns arrays of addresses, formats, and usages for the group
-    /// @param	_groupId	ID of the group to get entries for
-    /// @return	rawAddresses	Array of raw address bytes
-    /// @return	formats	Array of address formats
-    /// @return	usages	Array of usage bitmaps
+    /// @param	_groupId	   ID of the group to get entries for
+    /// @return	rawAddresses	   Array of raw address bytes
+    /// @return	formats	   Array of address formats
+    /// @return	usages	   Array of usage bitmaps
     function getGroupEntries(uint32 _groupId) external view onlyGroupExists(_groupId) returns (
         bytes[] memory rawAddresses,
         uint8[] memory formats,
@@ -472,37 +471,37 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
     }
 
     /// @notice	Checks if a whitelist group exists
-    /// @param	_groupId	ID of the group to check
-    /// @return	True if the group exists, false otherwise
+    /// @param	_groupId	   ID of the group to check
+    /// @return	True	if the group exists, false otherwise
     function _isGroupExists(uint32 _groupId) internal view returns (bool) {
         return whitelistGroups[_groupId].exists;
     }
     /// @notice	Checks if a whitelist group has no entries
-    /// @param	_groupId	ID of the group to check
-    /// @return	True if the group is empty, false otherwise
+    /// @param	_groupId	   ID of the group to check
+    /// @return	True	if the group is empty, false otherwise
     function _isGroupEmpty(uint32 _groupId) internal view returns (bool) {
         return whitelistGroups[_groupId].entryKeys.length == 0;
     }
 
     /// @notice	Checks if a group ID is the reserved group ID
-    /// @param	_groupId	ID to check
-    /// @return	True if it's the reserved group ID, false otherwise
+    /// @param	_groupId	   ID to check
+    /// @return	True	if it's the reserved group ID, false otherwise
     function _isReservedGroupId(uint32 _groupId) internal pure returns (bool) {
         return _groupId == RESERVED_GROUP_ID;
     }
 
     /// @notice	Checks if a group ID is a custom group ID
-    /// @param	_groupId	ID to check
-    /// @return	True if it's a custom group ID, false otherwise
+    /// @param	_groupId	   ID to check
+    /// @return	True	if it's a custom group ID, false otherwise
     function _isCustomGroupId(uint32 _groupId) internal pure returns (bool) {
         return _groupId > RESERVED_GROUP_ID;
     }
 
     /// @notice	Gets the range of group IDs based on inclusion criteria
     /// @dev	Returns start and end IDs for group iteration
-    /// @param	_includeReservedGroup	Whether to include reserved group in range
-    /// @return	startId	Starting group ID
-    /// @return	endId	Ending group ID (exclusive)
+    /// @param	_includeReservedGroup	   Whether to include reserved group in range
+    /// @return	startId	   Starting group ID
+    /// @return	endId	   Ending group ID (exclusive)
     function _getGroupIdRange(
         bool _includeReservedGroup
     ) internal view returns (uint32, uint32) {
@@ -518,9 +517,9 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Validates that entry arrays have matching lengths
     /// @dev	Ensures all arrays have the same length and are not empty
-    /// @param	_rawAddresses	Array of raw address bytes
-    /// @param	_formats	Array of address formats
-    /// @param	_usages	Array of usage bitmaps
+    /// @param	_rawAddresses	   Array of raw address bytes
+    /// @param	_formats	   Array of address formats
+    /// @param	_usages	   Array of usage bitmaps
     function _validateEntryArrayLengths(
         bytes[] calldata _rawAddresses,
         uint8[] calldata _formats,
@@ -540,10 +539,10 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Validates that update entry arrays have matching lengths
     /// @dev	Ensures all arrays have the same length and are not empty
-    /// @param	_formats	Array of address formats
-    /// @param	_usages	Array of usage bitmaps
-    /// @param	_oldRawAddresses	Array of old raw address bytes
-    /// @param	_newRawAddresses	Array of new raw address bytes
+    /// @param	_formats	   Array of address formats
+    /// @param	_usages	   Array of usage bitmaps
+    /// @param	_oldRawAddresses	   Array of old raw address bytes
+    /// @param	_newRawAddresses	   Array of new raw address bytes
     function _validateEntryArrayLengths(
         uint8[] calldata _formats,
         uint8[] calldata _usages,
@@ -565,8 +564,8 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Validates that an address usage is valid for the given group
     /// @dev	Different groups have different allowed usage types
-    /// @param	_groupId	ID of the group
-    /// @param	_usage	Usage type to validate
+    /// @param	_groupId	   ID of the group
+    /// @param	_usage	   Usage type to validate
     function _requireEntryValidUsage(uint32 _groupId, uint8 _usage) internal pure {
         if (_isReservedGroupId(_groupId)) {
 
@@ -599,9 +598,9 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Validates that an address format is valid for the given group
     /// @dev	Different groups have different allowed address formats
-    /// @param	_groupId	ID of the group
-    /// @param	_format	Address format to validate
-    /// @param	_rawAddress	Raw address bytes to validate
+    /// @param	_groupId	   ID of the group
+    /// @param	_format	   Address format to validate
+    /// @param	_rawAddress	   Raw address bytes to validate
     function _requireEntryValidFormat(
         uint32 _groupId,
         uint8 _format,
@@ -632,9 +631,9 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Validates that an address entry has no conflicts
     /// @dev	Checks for address reuse and shared usage conflicts
-    /// @param	_groupId	ID of the group
-    /// @param	_usage	Usage type to check
-    /// @param	_rawAddress	Raw address bytes to check
+    /// @param	_groupId	   ID of the group
+    /// @param	_usage	   Usage type to check
+    /// @param	_rawAddress	   Raw address bytes to check
     function _requireEntryNoConflict(
         uint32 _groupId,
         uint8 _usage,
@@ -660,10 +659,10 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Adds an entry to a whitelist group
     /// @dev	Validates entry and updates storage accordingly
-    /// @param	_groupId	ID of the group to add entry to
-    /// @param	_rawAddress	Raw address bytes
-    /// @param	_format	Address format
-    /// @param	_usage	Usage type for the address
+    /// @param	_groupId	   ID of the group to add entry to
+    /// @param	_rawAddress	   Raw address bytes
+    /// @param	_format	   Address format
+    /// @param	_usage	   Usage type for the address
     function _addEntryToGroup(
         uint32 _groupId,
         bytes calldata _rawAddress,
@@ -697,9 +696,9 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Removes an entry from a whitelist group
     /// @dev	Updates usage or removes entry entirely based on remaining usages
-    /// @param	_groupId	ID of the group to remove entry from
-    /// @param	_rawAddress	Raw address bytes
-    /// @param	_usage	Usage type to remove
+    /// @param	_groupId	   ID of the group to remove entry from
+    /// @param	_rawAddress	   Raw address bytes
+    /// @param	_usage	   Usage type to remove
     function _removeEntryFromGroup(
         uint32 _groupId,
         bytes calldata _rawAddress,
@@ -733,8 +732,8 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
     ///         This is an infrequent operation, and each group is expected to contain a limited
     ///         number of entries (typically less than a few dozen), so a linear search is acceptable
     ///         and helps keep the storage structure simple and gas-efficient
-    /// @param	_groupId	ID of the group to remove entry key from
-    /// @param	_entryKey	Entry key to remove from the group
+    /// @param	_groupId	   ID of the group to remove entry key from
+    /// @param	_entryKey	   Entry key to remove from the group
     function _removeEntryKeyFromGroup(
         uint32 _groupId,
         bytes32 _entryKey
@@ -760,11 +759,11 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
 
     /// @notice	Updates an entry in a whitelist group
     /// @dev	Removes old entry and adds new entry
-    /// @param	_groupId	ID of the group to update entry in
-    /// @param	_format	New address format
-    /// @param	_usage	Usage type for the address
-    /// @param	_oldRawAddress	Old raw address bytes
-    /// @param	_newRawAddress	New raw address bytes
+    /// @param	_groupId	   ID of the group to update entry in
+    /// @param	_format	   New address format
+    /// @param	_usage	   Usage type for the address
+    /// @param	_oldRawAddress	   Old raw address bytes
+    /// @param	_newRawAddress	   New raw address bytes
     function _updateEntryInGroup(
         uint32 _groupId,
         uint8 _format,

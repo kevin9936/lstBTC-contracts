@@ -18,10 +18,13 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
  * consistent access control across all protocol contracts.
  */
 abstract contract AccessControlBase is Initializable, AccessControlUpgradeable {
-    // Thrown when a zero address is provided where not allowed
+    /// @notice	Thrown when a zero address is provided where not allowed
+    /// @dev	Used to validate that addresses are not zero before performing operations
     error ZeroAddress();
 
-    // Thrown when an unauthorized address attempts an operation
+    /// @notice	Thrown when an unauthorized address attempts an operation
+    /// @dev	Used when an address without proper permissions tries to call restricted functions
+    /// @param	caller	Address that attempted the unauthorized operation
     error Unauthorized(address caller);
 
     // Role for operational governance decisions (governors can perform operational functions but not admin functions)
@@ -29,9 +32,9 @@ abstract contract AccessControlBase is Initializable, AccessControlUpgradeable {
 
     /// @notice	Initializes the access control system
     /// @dev	Sets up admin and governor roles with proper permissions.
-    ///		    Can only be called once during contract initialization
-    /// @param	_admin	Address to be granted admin role with full control
-    /// @param	_governor	Address to be granted governor role for operations
+    ///            Can only be called once during contract initialization
+    /// @param	_admin	   Address to be granted admin role with full control
+    /// @param	_governor   Address to be granted governor role for operations
     function __AccessControlBase_init(
         address _admin,
         address _governor
@@ -63,7 +66,7 @@ abstract contract AccessControlBase is Initializable, AccessControlUpgradeable {
 
     /// @notice	Ensures the provided address is not zero
     /// @dev	Reverts with ZeroAddress error if address is zero
-    /// @param	_account	Address to validate
+    /// @param	_account	   Address to validate
     modifier nonZeroAddress(address _account) {
         if (_account == address(0)) { revert ZeroAddress(); }
         _;

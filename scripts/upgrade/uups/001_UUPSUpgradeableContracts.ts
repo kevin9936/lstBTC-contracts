@@ -252,7 +252,7 @@ function printUUPSConractTable() {
         "NavProviderLogic": "contracts/nav/NavProviderLogic.sol:NavProviderLogic",
         "WhitelistRegistryLogic": "contracts/whitelist/WhitelistRegistryLogic.sol:WhitelistRegistryLogic",
         "PegRequestHelper": "contracts/libraries/PegRequestHelper.sol:PegRequestHelper",
-        "BtcUtils": "bitcoin-transaction-helper/contracts/BtcUtils.sol:BtcUtils"
+        "BtcUtils": "contracts/libraries/BtcUtils.sol:BtcUtils"
     };
 
     let proxyNameMap: Record<string, string> = {

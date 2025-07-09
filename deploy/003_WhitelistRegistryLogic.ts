@@ -12,7 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         from: deployer,
         log: true,
         skipIfAlreadyDeployed: true,
-        contract: "bitcoin-transaction-helper/contracts/BtcUtils.sol:BtcUtils"
+        contract: "contracts/libraries/BtcUtils.sol:BtcUtils"
     });
 
     // Deploy WhitelistRegistryLogic with library linking
@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         await verify(
             btcUtils.address,
             [],
-            "bitcoin-transaction-helper/contracts/BtcUtils.sol:BtcUtils"
+            "contracts/libraries/BtcUtils.sol:BtcUtils"
         )
 
         await verify(

@@ -181,11 +181,8 @@ library PegRequestHelper {
             _request.depositedAt
         );
 
-
-        uint16[] memory shares;
         IConfigRegistry configRegistry = IConfigRegistry(_bridge.configRegistry());
-        (recipients, shares) = configRegistry.getPegInTreasuryFeeShares(_request.depositedAt);
-        recipientAmounts = splitAmounts(shares, _request.treasuryFee);
+        (recipients, recipientAmounts) = calculatePegInTreasuryFeeSplits(_request, configRegistry);
 
         _request.amount = _amount;
         _request.finalityHeight = _blockHeight + configRegistry.getBitcoinConfirmations(_custodianId);
@@ -226,10 +223,8 @@ library PegRequestHelper {
             _request.depositedAt
         );
 
-        uint16[] memory shares;
         IConfigRegistry configRegistry = IConfigRegistry(_bridge.configRegistry());
-        (recipients, shares) = configRegistry.getPegOutTreasuryFeeShares(_request.depositedAt);
-        recipientAmounts = splitAmounts(shares, _request.treasuryFee);
+        (recipients, recipientAmounts) = calculatePegOutTreasuryFeeSplits(_request, configRegistry);
 
         _request.amount = _amount;
         _request.finalityHeight = block.number.toUint32() + configRegistry.getNativeConfirmations(_custodianId);
@@ -329,6 +324,42 @@ library PegRequestHelper {
         }
 
         require(settledAmount != 0, "PegRequestHelper: invalid settled amount");
+    }
+
+    function calculatePegInTreasuryFeeSplits(
+        PegRequest storage _request,
+        IConfigRegistry _configRegistry
+    ) internal view returns (
+        address[] memory recipients,
+        uint64[] memory recipientAmounts
+    ) {
+        uint16[] memory shares;
+        (
+            recipients,
+            shares
+        ) = _configRegistry.getPegInTreasuryFeeShares(
+            _request.depositedAt
+        );
+
+        recipientAmounts = splitAmounts(shares, _request.treasuryFee);
+    }
+
+    function calculatePegOutTreasuryFeeSplits(
+        PegRequest storage _request,
+        IConfigRegistry _configRegistry
+    ) internal view returns (
+        address[] memory recipients,
+        uint64[] memory recipientAmounts
+    ) {
+        uint16[] memory shares;
+        (
+            recipients,
+            shares
+        ) = _configRegistry.getPegOutTreasuryFeeShares(
+            _request.depositedAt
+        );
+
+        recipientAmounts = splitAmounts(shares, _request.treasuryFee);
     }
 
     /// @notice	Validates a standard Bitcoin transfer structure for peg-in/peg-out operations

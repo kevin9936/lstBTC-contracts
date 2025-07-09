@@ -602,9 +602,6 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
             _custodianId
         );
 
-        stagedRecipients[requestId] = recipients;
-        stagedTreasuryFees[requestId] = recipientAmounts;
-
         emit PegInCreated(
             requestId,
             _custodianId,
@@ -743,9 +740,6 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
             _amount,
             _custodianId
         );
-
-        stagedRecipients[requestId] = recipients;
-        stagedTreasuryFees[requestId] = recipientAmounts;
 
         emit PegOutCreated(
             requestId,
@@ -960,7 +954,13 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         }
 
         INavProvider(navProvider).increasePeggedBTC(request.amount);
-        _settleTreasuryFees(_batchId, _requestId);
+
+        (
+            address[] memory recipients,
+            uint64[] memory recipientAmounts
+        ) = request.calculatePegInTreasuryFeeSplits(IConfigRegistry(configRegistry));
+
+        _settleTreasuryFees(_batchId, _requestId, recipients, recipientAmounts);
 
         request.batchId = _batchId;
         request.status = PegStatus.PendingPayout;
@@ -1019,7 +1019,12 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         uint64 unpeggedBTC = request.netAmount + request.transactionFee;
         INavProvider(navProvider).decreasePeggedBTC(unpeggedBTC);
 
-        _settleTreasuryFees(_batchId, _requestId);
+        (
+            address[] memory recipients,
+            uint64[] memory recipientAmounts
+        ) = request.calculatePegOutTreasuryFeeSplits(IConfigRegistry(configRegistry));
+
+        _settleTreasuryFees(_batchId, _requestId, recipients, recipientAmounts);
 
         request.batchId = _batchId;
         request.status = PegStatus.PendingPayout;
@@ -1046,9 +1051,6 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
                 _custodianId,
                 _batchId
             );
-
-            delete stagedRecipients[requestId];
-            delete stagedTreasuryFees[requestId];
         }
     }
 
@@ -1071,9 +1073,6 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
                 _custodianId,
                 _batchId
             );
-
-            delete stagedRecipients[requestId];
-            delete stagedTreasuryFees[requestId];
         }
     }
 
@@ -1083,26 +1082,22 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// @param	_requestId	ID of the request to settle fees for
     function _settleTreasuryFees(
         uint32 _batchId,
-        uint256 _requestId
+        uint256 _requestId,
+        address[] memory _recipients,
+        uint64[] memory _recipientAmounts
     ) internal {
-        address[] storage recipients = stagedRecipients[_requestId];
-        uint64[] storage recipientAmounts = stagedTreasuryFees[_requestId];
-
-        uint256 recipientCount = recipients.length;
+        uint256 recipientCount = _recipients.length;
         for (uint256 i = 0; i < recipientCount; ++i) {
-            if (recipientAmounts[i] != 0) {
-                claimableFees[recipients[i]] += recipientAmounts[i];
+            if (_recipientAmounts[i] != 0) {
+                claimableFees[_recipients[i]] += _recipientAmounts[i];
             }
         }
 
         emit TreasuryFeeAccumulated(
             _batchId,
             _requestId,
-            recipients,
-            recipientAmounts
+            _recipients,
+            _recipientAmounts
         );
-
-        delete stagedRecipients[_requestId];
-        delete stagedTreasuryFees[_requestId];
     }
 }

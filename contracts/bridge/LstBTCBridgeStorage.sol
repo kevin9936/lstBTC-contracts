@@ -64,12 +64,6 @@ contract LstBTCBridgeStorage is ILstBTCBridgeStorage {
     // Mapping of custodian ID to array of custodian data (custodianId => data)
     mapping (uint256 => CustodianData) public custodianDatas;
 
-    // Mapping of request ID to array of fee recipient addresses
-    mapping (uint256 => address[]) public stagedRecipients;
-
-    // Mapping of request ID to array of treasury fee amounts
-    mapping (uint256 => uint64[]) public stagedTreasuryFees;
-
     // Mapping of address to claimable fee amount
     mapping (address => uint64) public claimableFees;
 

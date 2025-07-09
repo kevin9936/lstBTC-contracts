@@ -49,6 +49,11 @@ contract ConfigRegistryLogic is IConfigRegistry, AccessControlBase, UUPSUpgradea
     error TotalSharesMismatch(uint256 expectedShares, uint256 actualShares);
 
 
+    struct CustodianConfig {
+        uint32 bitcoinConfirmations;
+        uint32 nativeConfirmations;
+    }
+
     /// @notice Configuration structure for fee management
     /// @dev Contains time-series data for different fee parameters
     struct FeeConfig {
@@ -73,11 +78,13 @@ contract ConfigRegistryLogic is IConfigRegistry, AccessControlBase, UUPSUpgradea
     // Address of the main bridge contract
     address public override bridge;
 
-    // Bitcoin confirmation requirements per custodian (custodianId => required Bitcoin confirmations)
-    mapping (uint256 => uint32) public bitcoinConfirmations;
+    // // Bitcoin confirmation requirements per custodian (custodianId => required Bitcoin confirmations)
+    // mapping (uint256 => uint32) public bitcoinConfirmations;
 
-    // Native chain confirmation requirements per custodian (custodianId => required native chain confirmations)
-    mapping (uint256 => uint32) public nativeConfirmations;
+    // // Native chain confirmation requirements per custodian (custodianId => required native chain confirmations)
+    // mapping (uint256 => uint32) public nativeConfirmations;
+
+    mapping (uint256 => CustodianConfig) public custodianConfigs;
 
     // Fee configuration for peg-in operations
     FeeConfig internal pegInFeeConfig;
@@ -135,11 +142,11 @@ contract ConfigRegistryLogic is IConfigRegistry, AccessControlBase, UUPSUpgradea
 
         emit BitcoinConfirmationsUpdated(
             _custodianId,
-            bitcoinConfirmations[_custodianId],
+            custodianConfigs[_custodianId].bitcoinConfirmations,
             _confirmations
         );
 
-        bitcoinConfirmations[_custodianId] = _confirmations;
+        custodianConfigs[_custodianId].bitcoinConfirmations = _confirmations;
     }
 
     /// @notice	Sets native chain confirmation requirements for a custodian
@@ -159,11 +166,11 @@ contract ConfigRegistryLogic is IConfigRegistry, AccessControlBase, UUPSUpgradea
 
         emit NativeConfirmationsUpdated(
             _custodianId,
-            nativeConfirmations[_custodianId],
+            custodianConfigs[_custodianId].nativeConfirmations,
             _confirmations
         );
 
-        nativeConfirmations[_custodianId] = _confirmations;
+        custodianConfigs[_custodianId].nativeConfirmations = _confirmations;
     }
 
     /// @notice	Sets the minimum dust amount for peg-in deposits
@@ -300,7 +307,7 @@ contract ConfigRegistryLogic is IConfigRegistry, AccessControlBase, UUPSUpgradea
     /// @param	_custodianId	ID of the custodian
     /// @return	Number of required Bitcoin confirmations
     function getBitcoinConfirmations(uint32 _custodianId) external override view returns (uint32) {
-        uint32 confirmations = bitcoinConfirmations[_custodianId];
+        uint32 confirmations = custodianConfigs[_custodianId].bitcoinConfirmations;
 
         return confirmations == 0 ? DEFAULT_BITCOIN_CONFIRMATIONS : confirmations;
     }
@@ -310,7 +317,7 @@ contract ConfigRegistryLogic is IConfigRegistry, AccessControlBase, UUPSUpgradea
     /// @param	_custodianId	ID of the custodian
     /// @return	Number of required native confirmations
     function getNativeConfirmations(uint32 _custodianId) external override view returns (uint32) {
-        uint32 confirmations = nativeConfirmations[_custodianId];
+        uint32 confirmations = custodianConfigs[_custodianId].nativeConfirmations;
 
         return confirmations == 0 ? DEFAULT_NATIVE_CONFIRMATIONS : confirmations;
     }

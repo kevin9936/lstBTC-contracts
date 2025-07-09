@@ -393,7 +393,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
             batches[batchId].pegOutIds = pegOutIds;
         }
 
-        custodianBatches[custodianId].push(batchId);
+        custodianDatas[custodianId].batches.push(batchId);
 
         emit BatchProcessed(
             batchId,
@@ -433,7 +433,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
             batches[batchId].pegOutIds = pegOutIds;
         }
 
-        custodianBatches[custodianId].push(batchId);
+        custodianDatas[custodianId].batches.push(batchId);
 
         emit BatchRejected(
             batchId,
@@ -485,7 +485,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     function getCustodianBatchIds(
         uint32 _custodianId
     ) external view returns (uint32[] memory) {
-        return custodianBatches[_custodianId];
+        return custodianDatas[_custodianId].batches;
     }
 
     /// @notice	Retrieves the latest batch ID for a specific custodian
@@ -494,10 +494,19 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     function getCustodianLatestBatchId(
         uint32 _custodianId
     ) public view returns (uint32 latestBatchId) {
-        uint32[] storage batchIds = custodianBatches[_custodianId];
+        uint32[] storage batchIds = custodianDatas[_custodianId].batches;
         if (batchIds.length == 0) { return 0; }
 
         latestBatchId = batchIds[batchIds.length-1];
+    }
+
+    /// @notice Retrieves the current debt amount for a specific custodian
+    /// @param _custodianId The custodian ID to query
+    /// @return debt The amount of debt associated with the custodian
+    function getCustodianDebt(
+        uint32 _custodianId
+    ) external view returns (uint64 debt) {
+        return custodianDatas[_custodianId].debt;
     }
 
     /// @notice	Allocates a new unique request ID
@@ -859,14 +868,14 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         uint64 _amount,
         uint32 _custodianId
     ) internal {
-        custodianDebts[_custodianId] += _amount;
+        custodianDatas[_custodianId].debt += _amount;
         totalDebt += _amount;
 
         emit Borrowed(
             _custodianId,
             _txId,
             _amount,
-            custodianDebts[_custodianId],
+            custodianDatas[_custodianId].debt,
             totalDebt
         );
     }
@@ -881,21 +890,18 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         uint64 _amount,
         uint32 _custodianId
     ) internal {
-        uint64 repaidAmount;
-        if (custodianDebts[_custodianId] >= _amount) {
-            repaidAmount = _amount;
-        } else {
-            repaidAmount = custodianDebts[_custodianId];
-        }
+        uint64 currentDebt = custodianDatas[_custodianId].debt;
+        uint64 repaidAmount = currentDebt >= _amount ? _amount : currentDebt;
+        uint64 newDebt = currentDebt - repaidAmount;
 
-        custodianDebts[_custodianId] -= repaidAmount;
+        custodianDatas[_custodianId].debt = newDebt;
         totalDebt -= repaidAmount;
 
         emit Repaid(
             _custodianId,
             _txId,
             _amount,
-            custodianDebts[_custodianId],
+            newDebt,
             totalDebt
         );
     }

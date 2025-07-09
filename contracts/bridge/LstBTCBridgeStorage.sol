@@ -20,6 +20,11 @@ contract LstBTCBridgeStorage is ILstBTCBridgeStorage {
         uint256[] pegOutIds;
     }
 
+    struct CustodianData {
+        uint64 debt;
+        uint32[] batches;
+    }
+
     // Counter for generating unique request IDs
     uint256 public override requestIdCounter;
 
@@ -56,11 +61,8 @@ contract LstBTCBridgeStorage is ILstBTCBridgeStorage {
     // Mapping of batch ID to batch information (batchId => batch)
     mapping (uint256 => Batch) public batches;
 
-    // Mapping of custodian ID to array of batch IDs (custodianId => batchIds)
-    mapping (uint256 => uint32[]) public custodianBatches;
-
-    // Mapping of custodian ID to debt amount (custodianId => debt amount)
-    mapping (uint256 => uint64) public custodianDebts;
+    // Mapping of custodian ID to array of custodian data (custodianId => data)
+    mapping (uint256 => CustodianData) public custodianDatas;
 
     // Mapping of request ID to array of fee recipient addresses
     mapping (uint256 => address[]) public stagedRecipients;

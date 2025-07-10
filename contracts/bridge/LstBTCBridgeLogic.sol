@@ -512,6 +512,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// monitoring custodian activity and checking batch settlement status.
     ///
     /// @param _custodianId The unique identifier of the custodian to query
+    /// @return latestBatchId The most recent batch ID for the custodian, or 0 if none exists
     /// @return pegInIds Array of peg-in request IDs in the latest batch
     /// @return pegOutIds Array of peg-out request IDs in the latest batch
     /// @return isPegInSettled Whether all peg-in requests in the batch have been settled
@@ -519,15 +520,21 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     function getCustodianLatestBatch(
         uint32 _custodianId
     ) external view returns (
+        uint32 latestBatchId,
         uint256[] memory pegInIds,
         uint256[] memory pegOutIds,
         bool isPegInSettled,
         bool isPegOutSettled
     ) {
-        uint32 latestBatchId = getCustodianLatestBatchId(_custodianId);
+        latestBatchId = getCustodianLatestBatchId(_custodianId);
 
         if (latestBatchId != 0) {
-            return getBatch(latestBatchId);
+            (
+                pegInIds,
+                pegOutIds,
+                isPegInSettled,
+                isPegOutSettled
+            ) = getBatch(latestBatchId);
         }
     }
 

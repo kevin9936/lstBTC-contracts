@@ -228,24 +228,41 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
             revert EmptyPkScriptArray();
         }
 
-        // Step 2: Verify at least one output pkScript is whitelisted
-        // This ensures the transaction involves authorized addresses
-        if (!IWhitelistRegistry(whitelistRegistry).containsWhitelistedEntry(_toPkScripts)) {
-            revert WhitelistedPkScriptNotFound();
+        bytes32 txId;
+        {
+            // Step 2: Verify at least one output pkScript is whitelisted
+            // This ensures the transaction involves authorized addresses
+            (bool found, uint256 index) = IWhitelistRegistry(whitelistRegistry).findFirstWhitelistedIndex(_toPkScripts);
+            if (!found) {
+                revert WhitelistedPkScriptNotFound();
+            }
+
+            // Phase 2: Transaction Verification and Storage
+            // Step 3: Verify transaction inclusion in blockchain and store transaction data
+            // This validates the merkle proof and stores transaction for future reference
+            txId = IBitcoinRelay(bitcoinRelay).verifyAndStoreTransaction(
+                _rawTx,
+                _blockHeight,
+                _merkleProof,
+                _index
+            );
+
+            // Step 4: Verify whitelisted pkScript exists in transaction and has non-zero amount
+            // This critical security check prevents spoofing attacks where someone claims
+            // a whitelisted address but it's not actually in the transaction, or dust attacks
+            // where someone sends 0 satoshis to a whitelisted address. The findTxOutputByPkScript
+            // function validates that the claimed whitelisted address actually receives funds.
+            (bool isValid, uint64 amount, ) = IBitcoinRelay(bitcoinRelay).findTxOutputByPkScript(
+                txId,
+                _toPkScripts[index]
+            );
+            if (!isValid || amount == 0) {
+                revert WhitelistedPkScriptNotFound();
+            }
         }
 
-        // Phase 2: Transaction Verification and Storage
-        // Step 3: Verify transaction inclusion in blockchain and store transaction data
-        // This validates the merkle proof and stores transaction for future reference
-        bytes32 txId = IBitcoinRelay(bitcoinRelay).verifyAndStoreTransaction(
-            _rawTx,
-            _blockHeight,
-            _merkleProof,
-            _index
-        );
-
         // Phase 3: Transaction Analysis and Validation
-        // Step 4: Analyze transaction to determine transfer type and extract key information
+        // Step 5: Analyze transaction to determine transfer type and extract key information
         // This validates transaction structure and identifies the type of cross-chain operation
         (
             uint32 custodianId,
@@ -258,17 +275,17 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
             _toPkScripts
         );
 
-        // Step 5: Skip processing if transfer type is unknown
+        // Step 6: Skip processing if transfer type is unknown
         if (transferType == TransferType.Unknown) { return; }
 
-        // Step 6: Verify transaction has no lock time (immediate execution required)
+        // Step 7: Verify transaction has no lock time (immediate execution required)
         // Lock time transactions are not supported for cross-chain operations
         uint64 lockTime = IBitcoinRelay(bitcoinRelay).getTransactionLockTime(txId);
         if (lockTime != 0) {
             revert NonZeroLockTime(txId);
         }
 
-        // Step 7: Check if transaction has already been processed
+        // Step 8: Check if transaction has already been processed
         // Prevents double-processing of the same transaction
         if (provenTransactions[txId]) {
             revert DuplicateTransaction(txId);
@@ -276,7 +293,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         provenTransactions[txId] = true;
 
         // Phase 4: Transaction Processing
-        // Step 8: Route to appropriate handler based on transfer type
+        // Step 9: Route to appropriate handler based on transfer type
         if (transferType == TransferType.PegInDeposited) {
             // Handle Bitcoin deposit for peg-in operation
             _createPegInRequest(

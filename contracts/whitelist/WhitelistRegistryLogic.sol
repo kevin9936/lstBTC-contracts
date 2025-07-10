@@ -353,21 +353,23 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
         return _isCustomGroupId(_groupId);
     }
 
-    /// @notice Checks if any of the provided addresses are whitelisted
-    /// @param _rawAddresses Array of raw address bytes to check
-    /// @return True if any address is whitelisted, false otherwise
-    function containsWhitelistedEntry(
+    /// @notice Finds the first whitelisted address in an array of addresses
+    /// @dev Iterates through the provided address array and returns the index of the first whitelisted address.
+    /// This function is commonly used in bridge operations to identify which output address in a Bitcoin
+    /// transaction is authorized for cross-chain operations. Returns early on first match for gas efficiency.
+    /// @param _rawAddresses Array of raw address bytes to search through
+    /// @return found Whether a whitelisted address was found in the array
+    /// @return index Index of the first whitelisted address (meaningful only if found is true)
+    function findFirstWhitelistedIndex(
         bytes[] calldata _rawAddresses
-    ) external override view returns (bool) {
+    ) external override view returns (bool found, uint256 index) {
         uint256 addressCount = _rawAddresses.length;
 
         for (uint256 i = 0; i != addressCount; ++i) {
             if (isWhitelisted(_rawAddresses[i])) {
-                return true;
+                return (true, i);
             }
         }
-
-        return false;
     }
 
     /// @notice Gets whitelist entry information for an address

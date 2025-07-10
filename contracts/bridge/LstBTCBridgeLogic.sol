@@ -500,6 +500,37 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         latestBatchId = batchIds[batchIds.length-1];
     }
 
+    /// @notice Retrieves the latest batch information for a specific custodian
+    /// @dev This function provides a convenient way to access the most recent batch
+    /// for a custodian without needing to first get the batch ID. It returns the
+    /// complete batch information including all peg-in and peg-out request IDs
+    /// and their settlement status. If no batch exists for the custodian,
+    /// all return values will be empty/zero.
+    ///
+    /// The function first retrieves the latest batch ID using getCustodianLatestBatchId,
+    /// then fetches the complete batch data using getBatch. This is useful for
+    /// monitoring custodian activity and checking batch settlement status.
+    ///
+    /// @param _custodianId The unique identifier of the custodian to query
+    /// @return pegInIds Array of peg-in request IDs in the latest batch
+    /// @return pegOutIds Array of peg-out request IDs in the latest batch
+    /// @return isPegInSettled Whether all peg-in requests in the batch have been settled
+    /// @return isPegOutSettled Whether all peg-out requests in the batch have been settled
+    function getCustodianLatestBatch(
+        uint32 _custodianId
+    ) external view returns (
+        uint256[] memory pegInIds,
+        uint256[] memory pegOutIds,
+        bool isPegInSettled,
+        bool isPegOutSettled
+    ) {
+        uint32 latestBatchId = getCustodianLatestBatchId(_custodianId);
+
+        if (latestBatchId != 0) {
+            return getBatch(latestBatchId);
+        }
+    }
+
     /// @notice Retrieves the current debt amount for a specific custodian
     /// @param _custodianId The custodian ID to query
     /// @return debt The amount of debt associated with the custodian

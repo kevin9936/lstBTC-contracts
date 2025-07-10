@@ -435,10 +435,8 @@ library PegRequestHelper {
         }
 
         // Step 9: Validate change output exists in actual transaction
-        if (outputCount == 2) {
-            (isValid, , ) = bitcoinRelay.findTxOutputByPkScript(_txId, _toPkScripts[1]);
-            require(isValid, "PegRequestHelper: invalid output pkScript");
-        }
+        (isValid, , ) = bitcoinRelay.findTxOutputByPkScript(_txId, _toPkScripts[1]);
+        require(isValid, "PegRequestHelper: invalid output pkScript");
 
         // Step 10: Extract and validate main transfer amount from first output
         // This is the actual amount being transferred to the destination address

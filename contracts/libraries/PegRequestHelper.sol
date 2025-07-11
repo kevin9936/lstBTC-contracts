@@ -422,23 +422,17 @@ library PegRequestHelper {
             return (true, amount);
         }
 
-        // Step 7: For dual outputs, verify destination and change addresses are different
-        // Prevents suspicious transactions sending to same address twice
-        if (bytesEqual(_toPkScripts[0], _toPkScripts[1])) {
+        // Step 7: For dual outputs, verify destination and change addresses are different and change goes back to source
+        // Prevents suspicious transactions sending to same address twice and ensures proper change handling
+        if (bytesEqual(_toPkScripts[0], _toPkScripts[1]) || !bytesEqual(_toPkScripts[1], _fromPkScripts[0])) {
             return (false, 0);
         }
 
-        // Step 8: Verify second output is change back to source address
-        // Ensures proper change handling in dual-output transactions
-        if (!bytesEqual(_toPkScripts[1], _fromPkScripts[0])) {
-            return (false, 0);
-        }
-
-        // Step 9: Validate change output exists in actual transaction
+        // Step 8: Validate change output exists in actual transaction
         (isValid, , ) = bitcoinTxStore.findTxOutputByPkScript(_txId, _toPkScripts[1]);
         require(isValid, "PegRequestHelper: invalid output pkScript");
 
-        // Step 10: Extract and validate main transfer amount from first output
+        // Step 9: Extract and validate main transfer amount from first output
         // This is the actual amount being transferred to the destination address
         (isValid, amount, ) = bitcoinTxStore.findTxOutputByPkScript(_txId, _toPkScripts[0]);
         require(isValid && amount != 0, "PegRequestHelper: invalid output pkScript");

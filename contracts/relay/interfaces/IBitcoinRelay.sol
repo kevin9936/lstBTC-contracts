@@ -25,14 +25,6 @@ interface IBitcoinRelay {
         uint32 newFinalizationParameter
     );
 
-    /// @notice Emitted when a new relayer is added
-    /// @param relayer Address of the added relayer
-    event RelayerAdded(address indexed relayer);
-
-    /// @notice Emitted when a relayer is removed
-    /// @param relayer Address of the removed relayer
-    event RelayerRemoved(address indexed relayer);
-
     /// @notice Emitted when a Bitcoin transaction is submitted and verified
     /// @param txId Bitcoin transaction ID
     /// @param blockNumber Bitcoin block number containing the transaction

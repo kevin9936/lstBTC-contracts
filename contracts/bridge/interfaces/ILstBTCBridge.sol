@@ -38,14 +38,6 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
     /// @param newAddress New lstBTC token address
     event LstBTCUpdated(address indexed oldAddress, address indexed newAddress);
 
-    /// @notice Emitted when a new relayer is added
-    /// @param relayer Address of the added relayer
-    event RelayerAdded(address indexed relayer);
-
-    /// @notice Emitted when a relayer is removed
-    /// @param relayer Address of the removed relayer
-    event RelayerRemoved(address indexed relayer);
-
     /// @notice Emitted when a batch of requests is processed successfully
     /// @param batchId ID of the processed batch
     /// @param pegInIds Array of peg-in request IDs in the batch

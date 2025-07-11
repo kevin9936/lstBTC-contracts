@@ -48,8 +48,8 @@ contract LstBTCBridgeStorage is ILstBTCBridgeStorage {
     /// @notice Address of the whitelist registry contract
     address public override whitelistRegistry;
 
-    /// @notice Address of the Bitcoin relay contract
-    address public override bitcoinRelay;
+    /// @notice Address of the Bitcoin transaction store contract
+    address public override bitcoinTxStore;
 
     /// @notice Address of the lstBTC token contract
     address public override lstBTC;

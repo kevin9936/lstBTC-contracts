@@ -5,7 +5,6 @@ import "../access/AccessControlBase.sol";
 import "../libraries/FeeConfigHelper.sol";
 import "./interfaces/IConfigRegistry.sol";
 import "../libraries/TimeSeriesDataLib.sol";
-import "../relay/interfaces/IBitcoinRelay.sol";
 import "../bridge/interfaces/ILstBTCBridge.sol";
 import "../whitelist/interfaces/IWhitelistRegistry.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";

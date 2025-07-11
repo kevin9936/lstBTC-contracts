@@ -2,21 +2,21 @@
 pragma solidity 0.8.4;
 
 /**
- * @title IBitcoinRelay
- * @dev Interface for the Bitcoin relay contract
+ * @title IBitcoinTxStore
+ * @dev Interface for the Bitcoin transaction store contract
  *
- * This interface defines the functions and events for the Bitcoin relay,
+ * This interface defines the functions and events for the Bitcoin transaction store,
  * which provides a bridge between the native chain and Bitcoin blockchain.
- * The relay allows the protocol to:
+ * The transaction store allows the protocol to:
  * - Verify and store Bitcoin transactions with merkle proofs
  * - Query Bitcoin transaction details and block information
  * - Validate transaction inputs and outputs
  * - Manage finality parameters for Bitcoin confirmations
  *
- * The relay acts as a light client for Bitcoin, enabling cross-chain
+ * The transaction store acts as a light client for Bitcoin, enabling cross-chain
  * operations in the lstBTC protocol.
  */
-interface IBitcoinRelay {
+interface IBitcoinTxStore {
     /// @notice Emitted when the finalization parameter is updated
     /// @param oldFinalizationParameter Previous finalization parameter
     /// @param newFinalizationParameter New finalization parameter
@@ -35,11 +35,11 @@ interface IBitcoinRelay {
         uint32 currentBlockNumber
     );
 
-    /// @notice Returns the initial Bitcoin block height when the relay was deployed
+    /// @notice Returns the initial Bitcoin block height when the transaction store was deployed
     /// @return Initial block height
     function initialHeight() external view returns(uint32);
 
-    /// @notice Returns the last Bitcoin block height that was submitted to the relay
+    /// @notice Returns the last Bitcoin block height that was submitted to the transaction store
     /// @return Last submitted block height
     function lastSubmittedHeight() external view returns(uint32);
 
@@ -117,7 +117,7 @@ interface IBitcoinRelay {
     ) external view returns (bool);
 
     /// @notice Verifies and stores a Bitcoin transaction with merkle proof
-    /// @dev Only callable by authorized relayers
+    /// @dev Only callable by authorized transaction submitters
     /// @param _rawTx Raw Bitcoin transaction bytes
     /// @param _blockNumber Bitcoin block number containing the transaction
     /// @param _merkleProof Merkle proof for transaction inclusion
@@ -130,13 +130,13 @@ interface IBitcoinRelay {
         uint32 _index
     ) external returns (bytes32);
 
-    /// @notice Pauses the relay operations
+    /// @notice Pauses the transaction store operations
     /// @dev Only callable by admin
-    function pauseRelay() external;
+    function pauseTxStore() external;
 
-    /// @notice Unpauses the relay operations
+    /// @notice Unpauses the transaction store operations
     /// @dev Only callable by admin
-    function unpauseRelay() external;
+    function unpauseTxStore() external;
 
     /// @notice Sets the finalization parameter (number of confirmations required)
     /// @dev Only callable by admin

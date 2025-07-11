@@ -3,7 +3,7 @@ pragma solidity 0.8.4;
 
 import "../types/DataTypes.sol";
 import "../nav/interfaces/INavProvider.sol";
-import "../relay/interfaces/IBitcoinRelay.sol";
+import "../bitcoin-tx-store/interfaces/IBitcoinTxStore.sol";
 import "../bridge/interfaces/ILstBTCBridge.sol";
 import "../whitelist/interfaces/IWhitelistRegistry.sol";
 import "../configuration/interfaces/IConfigRegistry.sol";
@@ -169,7 +169,7 @@ library PegRequestHelper {
         uint64[] memory recipientAmounts
     ) {
 
-        _request.depositedAt = IBitcoinRelay(_bridge.bitcoinRelay()).getBlockTimestamp(_blockHeight);
+        _request.depositedAt = IBitcoinTxStore(_bridge.bitcoinTxStore()).getBlockTimestamp(_blockHeight);
 
         (
             exchangeRate,
@@ -365,7 +365,7 @@ library PegRequestHelper {
     /// @notice Validates a standard Bitcoin transfer structure for peg-in/peg-out operations
     /// @dev Validates transaction structure, script authenticity, and amount verification.
     /// Ensures external parameters match on-chain transaction data and security requirements
-    /// @param _bridge Bridge contract for accessing bitcoin relay and whitelist registry
+    /// @param _bridge Bridge contract for accessing bitcoin transaction store and whitelist registry
     /// @param _txId Bitcoin transaction ID to validate
     /// @param _fromPkScripts Deduplicated input pkScripts from transaction inputs
     /// @param _toPkScripts Deduplicated output pkScripts from transaction outputs
@@ -397,8 +397,8 @@ library PegRequestHelper {
         // Phase 2: On-chain Data Consistency Verification
         // Step 3: Verify external data matches actual blockchain transaction
         // Transaction outputs contain no duplicate pkScripts, so count should match
-        IBitcoinRelay bitcoinRelay = IBitcoinRelay(_bridge.bitcoinRelay());
-        uint256 outputCount = bitcoinRelay.getOutputCount(_txId);
+        IBitcoinTxStore bitcoinTxStore = IBitcoinTxStore(_bridge.bitcoinTxStore());
+        uint256 outputCount = bitcoinTxStore.getOutputCount(_txId);
         if (outputCount != _toPkScripts.length) {
             return (false, 0);
         }
@@ -411,13 +411,13 @@ library PegRequestHelper {
 
         // Step 5: Verify transaction actually spends from claimed source address
         // Prevents spoofing by ensuring all inputs come from the specified pkScript
-        if (!bitcoinRelay.areAllInputsFromPkScript(_txId, _fromPkScripts[0])) {
+        if (!bitcoinTxStore.areAllInputsFromPkScript(_txId, _fromPkScripts[0])) {
             return (false, 0);
         }
 
         // Step 6: Handle single output scenario (direct transfer to destination)
         if (outputCount == 1) {
-            (isValid, amount, ) = bitcoinRelay.findTxOutputByPkScript(_txId, _toPkScripts[0]);
+            (isValid, amount, ) = bitcoinTxStore.findTxOutputByPkScript(_txId, _toPkScripts[0]);
             require(isValid && amount != 0, "PegRequestHelper: invalid output pkScript");
             return (true, amount);
         }
@@ -435,12 +435,12 @@ library PegRequestHelper {
         }
 
         // Step 9: Validate change output exists in actual transaction
-        (isValid, , ) = bitcoinRelay.findTxOutputByPkScript(_txId, _toPkScripts[1]);
+        (isValid, , ) = bitcoinTxStore.findTxOutputByPkScript(_txId, _toPkScripts[1]);
         require(isValid, "PegRequestHelper: invalid output pkScript");
 
         // Step 10: Extract and validate main transfer amount from first output
         // This is the actual amount being transferred to the destination address
-        (isValid, amount, ) = bitcoinRelay.findTxOutputByPkScript(_txId, _toPkScripts[0]);
+        (isValid, amount, ) = bitcoinTxStore.findTxOutputByPkScript(_txId, _toPkScripts[0]);
         require(isValid && amount != 0, "PegRequestHelper: invalid output pkScript");
     }
 

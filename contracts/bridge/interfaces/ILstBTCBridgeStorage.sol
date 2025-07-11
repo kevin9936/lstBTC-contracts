@@ -15,7 +15,7 @@ interface ILstBTCBridgeStorage {
 
     function whitelistRegistry() external view returns (address);
 
-    function bitcoinRelay() external view returns (address);
+    function bitcoinTxStore() external view returns (address);
 
     function lstBTC() external view returns (address);
 }

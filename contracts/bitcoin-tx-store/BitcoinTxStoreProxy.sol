@@ -4,17 +4,17 @@ pragma solidity 0.8.4;
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /**
- * @title BitcoinRelayProxy
- * @dev Proxy contract for the Bitcoin relay implementation
+ * @title BitcoinTxStoreProxy
+ * @dev Proxy contract for the Bitcoin transaction store implementation
  *
- * This contract acts as a proxy for the BitcoinRelayLogic implementation,
- * allowing for upgradeable Bitcoin relay functionality. It uses OpenZeppelin's
+ * This contract acts as a proxy for the BitcoinTxStoreLogic implementation,
+ * allowing for upgradeable Bitcoin transaction store functionality. It uses OpenZeppelin's
  * ERC1967Proxy pattern for secure and efficient proxy operations.
  *
  * The proxy delegates all calls to the implementation contract while
  * maintaining the same storage layout for upgradeability.
  */
-contract BitcoinRelayProxy is ERC1967Proxy {
+contract BitcoinTxStoreProxy is ERC1967Proxy {
 
     /// @notice Initializes the proxy contract
     /// @dev Sets up the proxy with the implementation contract and initialization data

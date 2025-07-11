@@ -2,14 +2,14 @@
 pragma solidity 0.8.4;
 
 import "../access/AccessControlBase.sol";
-import "./interfaces/IBitcoinRelay.sol";
+import "./interfaces/IBitcoinTxStore.sol";
 import "../libraries/BitcoinHelper.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
-contract BitcoinRelayLogic is IBitcoinRelay,
+contract BitcoinTxStoreLogic is IBitcoinTxStore,
     AccessControlBase, PausableUpgradeable, UUPSUpgradeable {
 
     /// @notice Bitcoin transaction input structure following BIP-141
@@ -43,11 +43,11 @@ contract BitcoinRelayLogic is IBitcoinRelay,
     /// Based on Bitcoin's consensus rules for transaction finality
     uint32 public constant MAX_FINALIZATION_PARAMETER = 432;
 
-    /// @notice Role identifier for authorized relayers
-    /// @dev Relayers are trusted entities that submit Bitcoin transaction proofs
+    /// @notice Role identifier for authorized transaction submitters
+    /// @dev Transaction submitters are trusted entities that submit Bitcoin transaction proofs
     bytes32 public constant ROLE_RELAYER = keccak256("ROLE_RELAYER");
 
-    /// @notice Initial Bitcoin block height for the relay
+    /// @notice Initial Bitcoin block height for the transaction store
     /// @dev Sets the starting point for Bitcoin block validation.
     /// Blocks below this height are not considered valid
     uint32 public override initialHeight;
@@ -82,7 +82,7 @@ contract BitcoinRelayLogic is IBitcoinRelay,
         _disableInitializers();
     }
 
-    /// @notice Gives a starting point for the relay
+    /// @notice Initializes the transaction store with starting parameters
     /// @param _admin Default admin address
     /// @param _governor Governor address
     /// @param _btcLightClient BTC light client address
@@ -101,7 +101,7 @@ contract BitcoinRelayLogic is IBitcoinRelay,
 
         _setRoleAdmin(ROLE_RELAYER, ROLE_GOVERNOR);
 
-        require(_btcLightClient != address(0), "BitcoinRelay: btc light client is zero address");
+        require(_btcLightClient != address(0), "BitcoinTxStore: btc light client is zero address");
         btcLightClient = _btcLightClient;
         initialHeight = _initialHeight;
         finalizationParameter = _finalizationParameter;
@@ -109,15 +109,15 @@ contract BitcoinRelayLogic is IBitcoinRelay,
 
     function _authorizeUpgrade(address newImplementation) internal override onlyGovernor {}
 
-    /// @notice Pauses the Relay
+    /// @notice Pauses the transaction store
     /// @dev Only functions with whenPaused modifier can be called
-    function pauseRelay() external override onlyGovernor {
+    function pauseTxStore() external override onlyGovernor {
         _pause();
     }
 
-    /// @notice Unpauses the relay
+    /// @notice Unpauses the transaction store
     /// @dev Only functions with whenNotPaused modifier can be called
-    function unpauseRelay() external override onlyGovernor {
+    function unpauseTxStore() external override onlyGovernor {
         _unpause();
     }
 
@@ -149,7 +149,7 @@ contract BitcoinRelayLogic is IBitcoinRelay,
         );
 
         bytes32 blockHash = abi.decode(result, (bytes32));
-        require(blockHash != bytes32(0), "BitcoinRelay: block does not exist");
+        require(blockHash != bytes32(0), "BitcoinTxStore: block does not exist");
 
         result = Address.functionStaticCall(
             btcLightClient,
@@ -160,7 +160,7 @@ contract BitcoinRelayLogic is IBitcoinRelay,
         );
 
         uint64 blockTimestamp = abi.decode(result, (uint64));
-        require(blockTimestamp != 0, "BitcoinRelay: invalid block timestamp");
+        require(blockTimestamp != 0, "BitcoinTxStore: invalid block timestamp");
 
         return blockTimestamp;
     }
@@ -172,7 +172,7 @@ contract BitcoinRelayLogic is IBitcoinRelay,
     /// @param _txId Transaction ID to get block height for (in little-endian format)
     /// @return Block height where the transaction was included
     function getTransactionBlockHeight(bytes32 _txId) external override view returns(uint32) {
-        require(transactions[_txId].blockHeight != 0, "BitcoinRelay: transaction not finalized");
+        require(transactions[_txId].blockHeight != 0, "BitcoinTxStore: transaction not finalized");
         return transactions[_txId].blockHeight;
     }
 
@@ -180,7 +180,7 @@ contract BitcoinRelayLogic is IBitcoinRelay,
     /// @param _txId Transaction ID to get lock time for
     /// @return Transaction lock time
     function getTransactionLockTime(bytes32 _txId) external override view returns (uint32) {
-        require(transactions[_txId].blockHeight != 0, "BitcoinRelay: transaction not finalized");
+        require(transactions[_txId].blockHeight != 0, "BitcoinTxStore: transaction not finalized");
         return transactions[_txId].lockTime;
     }
 
@@ -189,7 +189,7 @@ contract BitcoinRelayLogic is IBitcoinRelay,
     /// @return Number of inputs in the transaction
     function getInputCount(bytes32 _txId) external override view returns (uint16) {
         Transaction storage txData = transactions[_txId];
-        require(txData.blockHeight != 0, "BitcoinRelay: transaction not finalized");
+        require(txData.blockHeight != 0, "BitcoinTxStore: transaction not finalized");
 
         return txData.inputs.length.toUint16();
     }
@@ -199,7 +199,7 @@ contract BitcoinRelayLogic is IBitcoinRelay,
     /// @return Number of outputs in the transaction
     function getOutputCount(bytes32 _txId) external override view returns (uint16) {
         Transaction storage txData = transactions[_txId];
-        require(txData.blockHeight != 0, "BitcoinRelay: transaction not finalized");
+        require(txData.blockHeight != 0, "BitcoinTxStore: transaction not finalized");
 
         return txData.outputs.length.toUint16();
     }
@@ -213,10 +213,10 @@ contract BitcoinRelayLogic is IBitcoinRelay,
         uint16 _index
     ) external override view returns (bytes32, uint32) {
         Transaction storage txData = transactions[_txId];
-        require(txData.blockHeight != 0, "BitcoinRelay: transaction not finalized");
+        require(txData.blockHeight != 0, "BitcoinTxStore: transaction not finalized");
 
         uint256 inputCount = txData.inputs.length;
-        require(_index < inputCount, "BitcoinRelay: input index out of bounds");
+        require(_index < inputCount, "BitcoinTxStore: input index out of bounds");
 
         TxIn storage input = txData.inputs[_index];
         return (input.hash, input.index);
@@ -232,10 +232,10 @@ contract BitcoinRelayLogic is IBitcoinRelay,
         uint16 _index
     ) external override view returns (bytes32, uint64) {
         Transaction storage txData = transactions[_txId];
-        require(txData.blockHeight != 0, "BitcoinRelay: transaction not finalized");
+        require(txData.blockHeight != 0, "BitcoinTxStore: transaction not finalized");
 
         uint256 outputCount = txData.outputs.length;
-        require(_index < outputCount, "BitcoinRelay: output index out of bounds");
+        require(_index < outputCount, "BitcoinTxStore: output index out of bounds");
 
         TxOut storage output = txData.outputs[_index];
         return (output.payloadHash, output.value);
@@ -253,7 +253,7 @@ contract BitcoinRelayLogic is IBitcoinRelay,
         bytes calldata _expectedPkScript
     ) external override view returns (bool found, uint64 amount, uint16 index) {
         Transaction storage txData = transactions[_txId];
-        require(txData.blockHeight != 0, "BitcoinRelay: transaction not finalized");
+        require(txData.blockHeight != 0, "BitcoinTxStore: transaction not finalized");
 
         bytes32 expectedHash = keccak256(_expectedPkScript);
         uint256 outputCount = txData.outputs.length;
@@ -278,7 +278,7 @@ contract BitcoinRelayLogic is IBitcoinRelay,
         bytes calldata _expectedPkScript
     ) external override view returns (bool) {
         Transaction storage txData = transactions[_txId];
-        require(txData.blockHeight != 0, "BitcoinRelay: transaction not finalized");
+        require(txData.blockHeight != 0, "BitcoinTxStore: transaction not finalized");
 
         bytes32 expectedHash = keccak256(_expectedPkScript);
         uint256 inputCount = txData.inputs.length;
@@ -287,8 +287,8 @@ contract BitcoinRelayLogic is IBitcoinRelay,
             TxIn storage input = txData.inputs[i];
             Transaction storage prevTx = transactions[input.hash];
 
-            require(prevTx.blockHeight != 0, "BitcoinRelay: referenced tx not found");
-            require(input.index < prevTx.outputs.length, "BitcoinRelay: output index out of bounds");
+            require(prevTx.blockHeight != 0, "BitcoinTxStore: referenced tx not found");
+            require(input.index < prevTx.outputs.length, "BitcoinTxStore: output index out of bounds");
 
             if (prevTx.outputs[input.index].payloadHash != expectedHash) {
                 return false;
@@ -305,7 +305,7 @@ contract BitcoinRelayLogic is IBitcoinRelay,
         emit NewFinalizationParameter(finalizationParameter, _finalizationParameter);
         require(
             _finalizationParameter > 0 && _finalizationParameter <= MAX_FINALIZATION_PARAMETER,
-            "BitcoinRelay: invalid finalization param"
+            "BitcoinTxStore: invalid finalization param"
         );
 
         finalizationParameter = _finalizationParameter;
@@ -326,13 +326,13 @@ contract BitcoinRelayLogic is IBitcoinRelay,
         bytes32[] calldata _merkleProof,
         uint32 _index
     ) external override whenNotPaused onlyRelayer returns (bytes32 txId) {
-        require(_blockHeight >= initialHeight, "BitcoinRelay: block number below initial height");
-        require(_merkleProof.length > 0, "BitcoinRelay: empty merkle proof");
+        require(_blockHeight >= initialHeight, "BitcoinTxStore: block number below initial height");
+        require(_merkleProof.length > 0, "BitcoinTxStore: empty merkle proof");
 
         txId = BitcoinHelper.calculateTxId(_rawTx);
         require(
             _checkMerkleProof(txId, _blockHeight, _merkleProof, _index),
-            "BitcoinRelay: transaction not finalized"
+            "BitcoinTxStore: transaction not finalized"
         );
 
         if (transactions[txId].blockHeight == 0) {
@@ -388,7 +388,7 @@ contract BitcoinRelayLogic is IBitcoinRelay,
         bytes29 _vinView
     ) internal {
         uint16 inputCount = _vinView.indexCompactInt(0).toUint16();
-        require(inputCount != 0, "BitcoinRelay: vin is empty");
+        require(inputCount != 0, "BitcoinTxStore: vin is empty");
 
         for (uint16 i = 0; i < inputCount; ++i) {
             (bytes32 txId, uint256 index) = _vinView.extractOutpoint(i);

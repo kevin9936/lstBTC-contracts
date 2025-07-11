@@ -28,10 +28,10 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
     /// @param newAddress New NAV provider address
     event NavProviderUpdated(address indexed oldAddress, address indexed newAddress);
 
-    /// @notice Emitted when the Bitcoin relay address is updated
-    /// @param oldAddress Previous Bitcoin relay address
-    /// @param newAddress New Bitcoin relay address
-    event BitcoinRelayUpdated(address indexed oldAddress, address indexed newAddress);
+    /// @notice Emitted when the Bitcoin transaction store address is updated
+    /// @param oldAddress Previous Bitcoin transaction store address
+    /// @param newAddress New Bitcoin transaction store address
+    event BitcoinTxStoreUpdated(address indexed oldAddress, address indexed newAddress);
 
     /// @notice Emitted when the lstBTC token address is updated
     /// @param oldAddress Previous lstBTC token address

@@ -26,7 +26,7 @@ lstBTC is a fully decentralized protocol that enables secure cross-chain Bitcoin
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   LstBTC Token  │    │  Bridge Logic   │    │ Bitcoin Relay   │
+│   LstBTC Token  │    │  Bridge Logic   │    │ Bitcoin TxStore │
 │                 │    │                 │    │                 │
 │ • ERC20 Token   │◄──►│ • Peg-in/out    │◄──►│ • SPV Proofs    │
 │ • Mint/Burn     │    │ • Batch Process │    │ • Merkle Proofs │
@@ -46,7 +46,7 @@ lstBTC is a fully decentralized protocol that enables secure cross-chain Bitcoin
 
 - **`LstBTCLogic`**: ERC20 token with mint/burn capabilities and role management
 - **`LstBTCBridgeLogic`**: Main bridge contract handling cross-chain transfers
-- **`BitcoinRelayLogic`**: Bitcoin transaction verification and SPV proof validation
+- **`BitcoinTxStoreLogic`**: Bitcoin transaction verification and SPV proof validation
 - **`WhitelistRegistryLogic`**: Address and script public key validation
 - **`ConfigRegistryLogic`**: Fee configuration and protocol parameters
 - **`NavProviderLogic`**: Exchange rate and NAV management

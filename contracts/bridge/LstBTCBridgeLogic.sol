@@ -7,7 +7,7 @@ import "../token/interfaces/ILstBTC.sol";
 import "../access/AccessControlBase.sol";
 import "../libraries/PegRequestHelper.sol";
 import "../nav/interfaces/INavProvider.sol";
-import "../relay/interfaces/IBitcoinRelay.sol";
+import "../bitcoin-tx-store/interfaces/IBitcoinTxStore.sol";
 import "../configuration/interfaces/IConfigRegistry.sol";
 import "../whitelist/interfaces/IWhitelistRegistry.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
@@ -29,7 +29,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
  * - Yield accrual and debt management
  *
  * The contract integrates with multiple components:
- * - BitcoinRelay for transaction verification
+ * - BitcoinTxStore for transaction verification
  * - WhitelistRegistry for address validation
  * - ConfigRegistry for fee configuration
  * - NavProvider for exchange rate management
@@ -85,15 +85,15 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// @notice Thrown when settlement amount does not match expected amount
     error InvalidSettlementAmount(uint32 custodianId, uint32 batchId, uint64 expectedAmount, uint64 actualAmount);
 
-    // Role for authorized relayers who can submit transaction proofs
+    // Role for authorized transaction submitters who can submit transaction proofs
     bytes32 public constant ROLE_RELAYER = keccak256("ROLE_RELAYER");
 
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
     using PegRequestHelper for PegRequest;
 
-    /// @notice Restricts function access to authorized relayers only
-    /// @dev Uses role-based access control to ensure only trusted relayers can submit proofs
+    /// @notice Restricts function access to authorized transaction submitters only
+    /// @dev Uses role-based access control to ensure only trusted transaction submitters can submit proofs
     modifier onlyRelayer() {
         _checkRole(ROLE_RELAYER, _msgSender());
         _;
@@ -173,14 +173,14 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         navProvider = _navProvider;
     }
 
-    /// @notice Updates the Bitcoin relay address
-    /// @dev Only governor can update the Bitcoin relay
-    /// @param _bitcoinRelay New Bitcoin relay address
-    function setBitcoinRelay(address _bitcoinRelay) external onlyGovernor {
-        if (_bitcoinRelay == bitcoinRelay) { return; }
+    /// @notice Updates the Bitcoin transaction store contract address
+    /// @dev Only governor can update the Bitcoin transaction store
+    /// @param _bitcoinTxStore New Bitcoin transaction store address
+    function setBitcoinTxStore(address _bitcoinTxStore) external onlyGovernor {
+        if (_bitcoinTxStore == bitcoinTxStore) { return; }
 
-        emit BitcoinRelayUpdated(bitcoinRelay, _bitcoinRelay);
-        bitcoinRelay = _bitcoinRelay;
+        emit BitcoinTxStoreUpdated(bitcoinTxStore, _bitcoinTxStore);
+        bitcoinTxStore = _bitcoinTxStore;
     }
 
     /// @notice Updates the lstBTC token address
@@ -195,7 +195,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice Submits a Bitcoin transaction proof for processing
     /// @dev This is the main entry point for processing Bitcoin transactions.
-    /// Only authorized relayers can submit proofs.
+    /// Only authorized transaction submitters can submit proofs.
     /// Validates transaction, analyzes transfer type, and routes to appropriate handler.
     /// Both _fromPkScripts and _toPkScripts contain deduplicated pkScripts from transaction parsing.
     /// When _fromPkScripts has size 1 and represents a whitelisted pkScript, if outputs contain change,
@@ -229,7 +229,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         // Phase 2: Transaction Verification and Storage
         // Step 3: Verify transaction inclusion in blockchain and store transaction data
         // This validates the merkle proof and stores transaction for future reference
-        bytes32 txId = IBitcoinRelay(bitcoinRelay).verifyAndStoreTransaction(
+        bytes32 txId = IBitcoinTxStore(bitcoinTxStore).verifyAndStoreTransaction(
             _rawTx,
             _blockHeight,
             _merkleProof,
@@ -253,14 +253,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         // Step 5: Skip processing if transfer type is unknown
         if (transferType == TransferType.Unknown) { return; }
 
-        // Step 6: Verify transaction has no lock time (immediate execution required)
-        // Lock time transactions are not supported for cross-chain operations
-        uint64 lockTime = IBitcoinRelay(bitcoinRelay).getTransactionLockTime(txId);
-        if (lockTime != 0) {
-            revert NonZeroLockTime(txId);
-        }
-
-        // Step 7: Check if transaction has already been processed
+        // Step 6: Check if transaction has already been processed
         // Prevents double-processing of the same transaction
         if (provenTransactions[txId]) {
             revert DuplicateTransaction(txId);
@@ -268,7 +261,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         provenTransactions[txId] = true;
 
         // Phase 4: Transaction Processing
-        // Step 8: Route to appropriate handler based on transfer type
+        // Step 7: Route to appropriate handler based on transfer type
         if (transferType == TransferType.PegInDeposited) {
             // Handle Bitcoin deposit for peg-in operation
             _createPegInRequest(
@@ -941,7 +934,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         uint32 _custodianId,
         uint32 _batchId
     ) internal returns (uint64 totalNetAmount) {
-        uint32 bitcoinBlockHeight = IBitcoinRelay(bitcoinRelay).lastSubmittedHeight();
+        uint32 bitcoinBlockHeight = IBitcoinTxStore(bitcoinTxStore).lastSubmittedHeight();
 
         uint256 reqCount = _requestIds.length;
         for (uint256 i = 0; i < reqCount; ++i) {

@@ -193,96 +193,99 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
     /// @notice Submits a Bitcoin transaction proof for processing
     /// @dev This is the main entry point for processing Bitcoin transactions.
-    /// Only authorized transaction submitters can submit proofs.
+    /// Only authorized relayers (transaction submitters) can submit proofs.
     /// Validates transaction, analyzes transfer type, and routes to appropriate handler.
-    /// Both _fromPkScripts and _toPkScripts contain deduplicated pkScripts from transaction parsing.
-    /// When _fromPkScripts has size 1 and represents a whitelisted pkScript, if outputs contain change,
-    /// the change pkScript must be placed as the last element in _toPkScripts array
+    ///
+    /// Parameter specifications:
+    /// - _fromPkScript: When not bytes(0), indicates that ALL transaction inputs reference UTXOs from this pkScript.
+    ///   This pkScript must be whitelisted. When bytes(0), no input validation is performed.
+    /// - _toPkScripts: Contains ALL whitelisted pkScripts from transaction outputs, deduplicated.
+    ///   If any pkScript in this array equals _fromPkScript, it must be placed as the last element.
+    ///   This represents change back to the source address.
+    ///
+    /// Security considerations:
+    /// - Only authorized relayers can call this function (onlyRelayer modifier)
+    /// - Transaction must include at least one whitelisted output pkScript
+    /// - Duplicate transaction processing is prevented
+    /// - All inputs must come from the specified source pkScript (when not bytes(0))
+    ///
     /// @param _rawTx Raw Bitcoin transaction data
     /// @param _blockHeight Bitcoin block height containing the transaction
     /// @param _merkleProof Merkle proof for transaction inclusion
     /// @param _index Transaction index in the block
-    /// @param _fromPkScripts Deduplicated input pkScripts from transaction inputs
-    /// @param _toPkScripts Deduplicated output pkScripts from transaction outputs (change pkScript as last element if exists)
+    /// @param _fromPkScript Source pkScript for all transaction inputs (must be whitelisted if not bytes(0))
+    /// @param _toPkScripts All whitelisted output pkScripts, deduplicated (change pkScript as last element if equals _fromPkScript)
     function submitTransactionProof(
         bytes calldata _rawTx,
         uint32 _blockHeight,
         bytes32[] calldata _merkleProof,
         uint32 _index,
-        bytes[] calldata _fromPkScripts,
+        bytes calldata _fromPkScript,
         bytes[] calldata _toPkScripts
     ) external nonReentrant onlyRelayer {
         // Phase 1: Input Validation
-        // Step 1: Verify at least one output pkScript is whitelisted
-        // This ensures the transaction involves authorized addresses
-        if (!IWhitelistRegistry(whitelistRegistry).containsWhitelistedEntry(_toPkScripts)) {
-            revert WhitelistedPkScriptNotFound();
-        }
+        // Step 1: Ensure at least one whitelisted output pkScript is provided
+        // This validates that the transaction involves authorized addresses and prevents empty submissions
+        if (_toPkScripts.length == 0) { revert WhitelistedPkScriptNotFound(); }
 
         // Phase 2: Transaction Verification and Storage
         // Step 2: Verify transaction inclusion in blockchain and store transaction data
         // This validates the merkle proof and stores transaction for future reference
+        // The txId is computed from the raw transaction data and used for duplicate prevention
         bytes32 txId = IBitcoinTxStore(bitcoinTxStore).verifyAndStoreTransaction(
             _rawTx,
             _blockHeight,
             _merkleProof,
             _index
         );
-        // Step 3: Check if transaction has already been processed
-        // Prevents double-processing of the same transaction
+
+        // Phase 3: Transaction Analysis
+        // Step 3: Analyze transaction to determine transfer type and custodian
+        // This identifies the type of cross-chain operation based on whitelist entries
+        // Only the first output pkScript is used for transfer type analysis
+        (
+            uint32 custodianId,
+            TransferType transferType)
+         = PegRequestHelper.analyzeBTCTransfer(
+            IWhitelistRegistry(whitelistRegistry),
+            _fromPkScript,
+            _toPkScripts[0]
+        );
+
+        // Step 4: Skip processing if transfer type is unknown
+        // Unknown transfer types are ignored to prevent processing unauthorized transactions
+        if (transferType == TransferType.Unknown) { return; }
+
+        // Phase 4: Transaction Structure Validation
+        // Step 5: Validate transaction structure and extract transfer amount
+        // This validates transaction structure and ensures security requirements
+        // Validates that all inputs come from the specified source and outputs match expectations
+        (, uint64 outputAmount) = PegRequestHelper.validateStandardTransfer(
+            IBitcoinTxStore(bitcoinTxStore),
+            txId,
+            _fromPkScript,
+            _toPkScripts
+        );
+
+        // Phase 5: Duplicate Prevention
+        // Step 6: Check if transaction has already been processed
+        // Prevents double-processing of the same transaction using the computed txId
         if (provenTransactions[txId]) {
             revert DuplicateTransaction(txId);
         }
-
-        uint32 custodianId;
-        TransferType transferType;
-        {
-            // Phase 3: Transaction Analysis and Validation
-            // Step 4: Analyze transaction to determine transfer type and extract key information
-
-            // Quick check Whether it is a standard transfer
-            if (!PegRequestHelper.isStandardTransfer(_fromPkScripts, _toPkScripts)) {
-                return;
-            }
-            (uint32 fromGroupId, uint8 fromUsage) = IWhitelistRegistry(whitelistRegistry).getWhitelistEntry(_fromPkScripts[0]);
-            if (fromGroupId == 0 || fromUsage == 0) {
-                return;
-            }
-            (uint32 toGroupId, uint8 toUsage) = IWhitelistRegistry(whitelistRegistry).getWhitelistEntry(_toPkScripts[0]);
-            if (toGroupId == 0 || toUsage == 0) {
-                return;
-            }
-            // This validates transaction structure and identifies the type of cross-chain operation
-            (
-                custodianId,
-                transferType
-            ) = PegRequestHelper.analyzeBTCTransfer(
-                fromGroupId,
-                fromUsage,
-                toGroupId,
-                toUsage
-            );
-            // Step 5: Skip processing if transfer type is unknown
-            if (transferType == TransferType.Unknown) { return; }
-        }
-        (bool isValid, uint64 outputAmount) = PegRequestHelper.validatePkScripts(
-            IBitcoinTxStore(bitcoinTxStore),
-            txId,
-            _fromPkScripts[0],
-            _toPkScripts);
-        if (!isValid) {
-            return;
-        }
         provenTransactions[txId] = true;
 
-        // Phase 4: Transaction Processing
-        // Step 6: Route to appropriate handler based on transfer type
+        // Phase 6: Transaction Processing
+        // Step 7: Route to appropriate handler based on transfer type
+        // Each transfer type triggers specific business logic for cross-chain operations
+
         if (transferType == TransferType.PegInDeposited) {
             // Handle Bitcoin deposit for peg-in operation
+            // Creates a new peg-in request for Bitcoin -> lstBTC conversion
             _createPegInRequest(
                 txId,
                 _blockHeight,
-                _fromPkScripts[0],
+                _fromPkScript,
                 _toPkScripts[0],
                 outputAmount,
                 custodianId
@@ -290,6 +293,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
         } else if (transferType == TransferType.PegInRefunded) {
             // Handle refund for rejected peg-in request
+            // Settles a previously rejected peg-in request by refunding the Bitcoin
             _settleRejectedPegInBatch(
                 txId,
                 outputAmount,
@@ -298,6 +302,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
         } else if (transferType == TransferType.PegOutPaid) {
             // Handle Bitcoin payment for approved peg-out request
+            // Settles a previously approved peg-out request by paying out Bitcoin
             _settleProcessedPegOutBatch(
                 txId,
                 outputAmount,
@@ -306,6 +311,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
         } else if (transferType == TransferType.YieldReceived) {
             // Handle yield distribution to custodian
+            // Accrues yield to the custodian's NAV calculation
             INavProvider(navProvider).accrueYield(
                 txId,
                 outputAmount,
@@ -314,6 +320,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
         } else if (transferType == TransferType.Borrowed) {
             // Handle borrowing operation
+            // Processes borrowing of funds by the custodian
             _borrow(
                 txId,
                 outputAmount,
@@ -322,6 +329,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
         } else if (transferType == TransferType.Repaid) {
             // Handle repayment operation
+            // Processes repayment of borrowed funds by the custodian
             _repay(
                 txId,
                 outputAmount,

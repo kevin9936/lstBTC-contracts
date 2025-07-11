@@ -353,23 +353,6 @@ contract WhitelistRegistryLogic is IWhitelistRegistry, AccessControlBase, UUPSUp
         return _isCustomGroupId(_groupId);
     }
 
-    /// @notice Checks if any of the provided addresses are whitelisted
-    /// @param _rawAddresses Array of raw address bytes to check
-    /// @return True if any address is whitelisted, false otherwise
-    function containsWhitelistedEntry(
-        bytes[] calldata _rawAddresses
-    ) external override view returns (bool) {
-        uint256 addressCount = _rawAddresses.length;
-
-        for (uint256 i = 0; i != addressCount; ++i) {
-            if (isWhitelisted(_rawAddresses[i])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /// @notice Gets whitelist entry information for an address
     /// @param _rawAddress Raw address bytes to get entry for
     /// @return groupId Group ID of the entry (0 if not found)

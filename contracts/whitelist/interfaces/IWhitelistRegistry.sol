@@ -88,11 +88,6 @@ interface IWhitelistRegistry {
     /// @return Whether the group is a custom group
     function isWhitelistedCustomGroup(uint32 _groupId) external view returns (bool);
 
-    /// @notice Checks if any of the provided addresses are whitelisted
-    /// @param _rawAddresses Array of raw address bytes to check
-    /// @return Whether any address in the array is whitelisted
-    function containsWhitelistedEntry(bytes[] calldata _rawAddresses) external view returns (bool);
-
     /// @notice Gets the whitelist entry information for an address
     /// @param _rawAddress Raw address bytes to query
     /// @return groupId ID of the group containing the address (0 if not found)

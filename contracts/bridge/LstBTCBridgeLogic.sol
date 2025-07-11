@@ -228,28 +228,50 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
             _merkleProof,
             _index
         );
-
-        // Phase 3: Transaction Analysis and Validation
-        // Step 3: Analyze transaction to determine transfer type and extract key information
-        // This validates transaction structure and identifies the type of cross-chain operation
-        (
-            uint32 custodianId,
-            TransferType transferType,
-            uint64 outputAmount
-        ) = PegRequestHelper.analyzeBTCTransfer(
-            ILstBTCBridge(this),
-            txId,
-            _fromPkScripts,
-            _toPkScripts
-        );
-
-        // Step 4: Skip processing if transfer type is unknown
-        if (transferType == TransferType.Unknown) { return; }
-
-        // Step 5: Check if transaction has already been processed
+        // Step 3: Check if transaction has already been processed
         // Prevents double-processing of the same transaction
         if (provenTransactions[txId]) {
             revert DuplicateTransaction(txId);
+        }
+
+        uint32 custodianId;
+        TransferType transferType;
+        {
+            // Phase 3: Transaction Analysis and Validation
+            // Step 4: Analyze transaction to determine transfer type and extract key information
+
+            // Quick check Whether it is a standard transfer
+            if (!PegRequestHelper.isStandardTransfer(_fromPkScripts, _toPkScripts)) {
+                return;
+            }
+            (uint32 fromGroupId, uint8 fromUsage) = IWhitelistRegistry(whitelistRegistry).getWhitelistEntry(_fromPkScripts[0]);
+            if (fromGroupId == 0 || fromUsage == 0) {
+                return;
+            }
+            (uint32 toGroupId, uint8 toUsage) = IWhitelistRegistry(whitelistRegistry).getWhitelistEntry(_toPkScripts[0]);
+            if (toGroupId == 0 || toUsage == 0) {
+                return;
+            }
+            // This validates transaction structure and identifies the type of cross-chain operation
+            (
+                custodianId,
+                transferType
+            ) = PegRequestHelper.analyzeBTCTransfer(
+                fromGroupId,
+                fromUsage,
+                toGroupId,
+                toUsage
+            );
+            // Step 5: Skip processing if transfer type is unknown
+            if (transferType == TransferType.Unknown) { return; }
+        }
+        (bool isValid, uint64 outputAmount) = PegRequestHelper.validatePkScripts(
+            IBitcoinTxStore(bitcoinTxStore),
+            txId,
+            _fromPkScripts[0],
+            _toPkScripts);
+        if (!isValid) {
+            return;
         }
         provenTransactions[txId] = true;
 

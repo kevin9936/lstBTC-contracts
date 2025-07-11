@@ -31,71 +31,48 @@ library PegRequestHelper {
     /// @notice Analyzes a Bitcoin transfer to determine its type and custodian
     /// @dev Validates the transfer structure and checks whitelist entries for both sender and receiver addresses.
     /// Determines transfer type based on usage patterns and custodian groups
-    /// @param _bridge Bridge contract for accessing whitelist registry and configuration
-    /// @param _txId Bitcoin transaction ID
-    /// @param _fromPkScripts Array of input script public keys
-    /// @param _toPkScripts Array of output script public keys
+    /// @param fromGroupId Group ID of the fromAddress's entry
+    /// @param fromUsage Usage bitmap of the fromAddress's entry
+    /// @param toGroupId Group ID of the toAddress's entry
+    /// @param toUsage Usage bitmap of the toAddress's entry
     /// @return custodianId ID of the custodian involved in the transfer
     /// @return transferType Type of transfer (PegInDeposited, PegOutPaid, YieldReceived, etc.)
-    /// @return outputAmount Amount transferred in satoshis
     function analyzeBTCTransfer(
-        ILstBTCBridge _bridge,
-        bytes32 _txId,
-        bytes[] calldata _fromPkScripts,
-        bytes[] calldata _toPkScripts
-    ) external view returns (uint32, TransferType, uint64) {
-        (
-            bool isStandardTransfer,
-            uint64 outputAmount
-        ) = validateStandardTransfer(
-            _bridge,
-            _txId,
-            _fromPkScripts,
-            _toPkScripts
-        );
-        if (!isStandardTransfer) { return (0, TransferType.Unknown, 0); }
-
-        IWhitelistRegistry whitelistRegistry = IWhitelistRegistry(_bridge.whitelistRegistry());
-        (uint32 fromGroupId, uint8 fromUsage) = whitelistRegistry.getWhitelistEntry(_fromPkScripts[0]);
-        if (fromGroupId == 0 || fromUsage == 0) {
-            return (0, TransferType.Unknown, 0);
-        }
-
-        (uint32 toGroupId, uint8 toUsage) = whitelistRegistry.getWhitelistEntry(_toPkScripts[0]);
-        if (toGroupId == 0 || toUsage == 0) {
-            return (0, TransferType.Unknown, 0);
-        }
-
+        uint32 fromGroupId,
+        uint8 fromUsage,
+        uint32 toGroupId,
+        uint8 toUsage
+    ) external view returns (uint32, TransferType) {
         if (fromGroupId != toGroupId) {
             if (fromUsage == AddressUsage.YIELD && toUsage == AddressUsage.OPERATIONS) {
-                return (toGroupId, TransferType.YieldReceived, outputAmount);
+                return (toGroupId, TransferType.YieldReceived);
             }
 
             if ((fromUsage & AddressUsage.BORROW) == AddressUsage.BORROW &&
                 toUsage == AddressUsage.OPERATIONS) {
-                return (toGroupId, TransferType.Borrowed, outputAmount);
+                return (toGroupId, TransferType.Borrowed);
             }
 
             if (fromUsage == AddressUsage.OPERATIONS &&
                 (toUsage & AddressUsage.REPAYMENT) == AddressUsage.REPAYMENT) {
-                return (fromGroupId, TransferType.Repaid, outputAmount);
+                return (fromGroupId, TransferType.Repaid);
             }
 
         } else {
              if (fromUsage == AddressUsage.OUTBOUND && toUsage == AddressUsage.OPERATIONS) {
-                return (fromGroupId, TransferType.PegInDeposited, outputAmount);
+                return (fromGroupId, TransferType.PegInDeposited);
             }
 
             if (fromUsage == AddressUsage.OPERATIONS && toUsage == AddressUsage.INBOUND) {
-                return (fromGroupId, TransferType.PegOutPaid, outputAmount);
+                return (fromGroupId, TransferType.PegOutPaid);
             }
 
             if (fromUsage == AddressUsage.OPERATIONS && toUsage == AddressUsage.OUTBOUND) {
-                return (fromGroupId, TransferType.PegInRefunded, outputAmount);
+                return (fromGroupId, TransferType.PegInRefunded);
             }
         }
 
-        return (0, TransferType.Unknown, 0);
+        return (0, TransferType.Unknown);
     }
 
     /// @notice Analyzes a wrapped BTC transfer to determine its type and custodian
@@ -379,78 +356,82 @@ library PegRequestHelper {
     }
 
     /// @notice Validates a standard Bitcoin transfer structure for peg-in/peg-out operations
-    /// @dev Validates transaction structure, script authenticity, and amount verification.
-    /// Ensures external parameters match on-chain transaction data and security requirements
-    /// @param _bridge Bridge contract for accessing bitcoin transaction store and whitelist registry
-    /// @param _txId Bitcoin transaction ID to validate
+    /// @dev Validates transaction structure
     /// @param _fromPkScripts Deduplicated input pkScripts from transaction inputs
     /// @param _toPkScripts Deduplicated output pkScripts from transaction outputs
     /// @return isValid True if transfer structure is valid and secure
-    /// @return amount Validated transfer amount in satoshis
-    function validateStandardTransfer(
-        ILstBTCBridge _bridge,
-        bytes32 _txId,
+    function isStandardTransfer(
         bytes[] calldata _fromPkScripts,
         bytes[] calldata _toPkScripts
-    ) private view returns (
-        bool isValid,
-        uint64 amount
-    ) {
+    ) internal view returns (bool) {
         // Phase 1: Basic Structure Validation
         // Step 1: Ensure single source address type (all inputs from same pkScript)
         // _fromPkScripts contains deduplicated pkScripts from actual transaction inputs
         if (_fromPkScripts.length != 1) {
-            return (false, 0);
+            return false;
         }
 
         // Step 2: Validate output structure (1 or 2 unique destination addresses)
         // _toPkScripts contains deduplicated pkScripts from actual transaction outputs
         // 1 output = direct transfer, 2 outputs = transfer + change back to source
         if (_toPkScripts.length != 1 && _toPkScripts.length != 2) {
-            return (false, 0);
+            return false;
         }
 
-        // Phase 2: On-chain Data Consistency Verification
-        // Step 3: Verify external data matches actual blockchain transaction
-        // Transaction outputs contain no duplicate pkScripts, so count should match
-        IBitcoinTxStore bitcoinTxStore = IBitcoinTxStore(_bridge.bitcoinTxStore());
-        uint256 outputCount = bitcoinTxStore.getOutputCount(_txId);
+        if (_toPkScripts.length == 2) {
+            // Step 3: For dual outputs, verify destination and change addresses are different
+            // Prevents suspicious transactions sending to same address twice
+            if (bytesEqual(_toPkScripts[0], _toPkScripts[1])) {
+                return false;
+            }
+
+            // Step 4: Verify second output is change back to source address
+            // Ensures proper change handling in dual-output transactions
+            if (!bytesEqual(_toPkScripts[1], _fromPkScripts[0])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// @notice Validates a standard Bitcoin transfer structure for peg-in/peg-out operations
+    /// @dev Validates transaction structure, script authenticity, and amount verification.
+    /// Ensures external parameters match on-chain transaction data and security requirements
+    /// @param _bitcoinTxStore Bitcoin tx store contract
+    /// @param _txId Bitcoin transaction ID to validate
+    /// @param _fromPkScript Unique input pkScript from transaction inputs
+    /// @param _toPkScripts Deduplicated output pkScripts from transaction outputs
+    /// @return isValid True if transfer structure is valid and secure
+    /// @return amount Validated transfer amount in satoshi
+    function validatePkScripts(
+        IBitcoinTxStore _bitcoinTxStore,
+        bytes32 _txId,
+        bytes calldata _fromPkScript,
+        bytes[] calldata _toPkScripts
+    ) internal view returns (
+        bool isValid,
+        uint64 amount
+    ) {
+        // On-chain Data Consistency Verification
+        uint256 outputCount = _bitcoinTxStore.getOutputCount(_txId);
         if (outputCount != _toPkScripts.length) {
             return (false, 0);
         }
 
-        // Step 4: Verify source address is whitelisted (authorized custodian)
-        IWhitelistRegistry whitelistRegistry = IWhitelistRegistry(_bridge.whitelistRegistry());
-        if (!whitelistRegistry.isWhitelisted(_fromPkScripts[0])) {
-            return (false, 0);
-        }
-
-        // Step 5: Verify transaction actually spends from claimed source address
+        // Verify transaction actually spends from claimed source address
         // Prevents spoofing by ensuring all inputs come from the specified pkScript
-        if (!bitcoinTxStore.areAllInputsFromPkScript(_txId, _fromPkScripts[0])) {
+        if (!_bitcoinTxStore.areAllInputsFromPkScript(_txId, _fromPkScript)) {
             return (false, 0);
         }
 
-        // Step 6: Handle single output scenario (direct transfer to destination)
-        if (outputCount == 1) {
-            (isValid, amount, ) = bitcoinTxStore.findTxOutputByPkScript(_txId, _toPkScripts[0]);
-            require(isValid && amount != 0, "PegRequestHelper: invalid output pkScript");
-            return (true, amount);
+        // Handle double output scenario (direct transfer to destination)
+        if (outputCount == 2) {
+            (isValid, , ) = _bitcoinTxStore.findTxOutputByPkScript(_txId, _toPkScripts[1]);
+            require(isValid, "PegRequestHelper: invalid output pkScript");
         }
-
-        // Step 7: For dual outputs, verify destination and change addresses are different and change goes back to source
-        // Prevents suspicious transactions sending to same address twice and ensures proper change handling
-        if (bytesEqual(_toPkScripts[0], _toPkScripts[1]) || !bytesEqual(_toPkScripts[1], _fromPkScripts[0])) {
-            return (false, 0);
-        }
-
-        // Step 8: Validate change output exists in actual transaction
-        (isValid, , ) = bitcoinTxStore.findTxOutputByPkScript(_txId, _toPkScripts[1]);
-        require(isValid, "PegRequestHelper: invalid output pkScript");
-
-        // Step 9: Extract and validate main transfer amount from first output
+        // Extract and validate main transfer amount from first output
         // This is the actual amount being transferred to the destination address
-        (isValid, amount, ) = bitcoinTxStore.findTxOutputByPkScript(_txId, _toPkScripts[0]);
+        (isValid, amount, ) = _bitcoinTxStore.findTxOutputByPkScript(_txId, _toPkScripts[0]);
         require(isValid && amount != 0, "PegRequestHelper: invalid output pkScript");
     }
 

@@ -37,8 +37,6 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
  */
 contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     AccessControlBase, ReentrancyGuardUpgradeable, PausableUpgradeable, UUPSUpgradeable {
-    /// @notice Thrown when public key script array is empty
-    error EmptyPkScriptArray();
 
     /// @notice Thrown when no whitelisted public key script is found
     error WhitelistedPkScriptNotFound();
@@ -215,19 +213,14 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         bytes[] calldata _toPkScripts
     ) external nonReentrant onlyRelayer {
         // Phase 1: Input Validation
-        // Step 1: Ensure pkScript arrays are not empty
-        if (_fromPkScripts.length == 0 || _toPkScripts.length == 0) {
-            revert EmptyPkScriptArray();
-        }
-
-        // Step 2: Verify at least one output pkScript is whitelisted
+        // Step 1: Verify at least one output pkScript is whitelisted
         // This ensures the transaction involves authorized addresses
         if (!IWhitelistRegistry(whitelistRegistry).containsWhitelistedEntry(_toPkScripts)) {
             revert WhitelistedPkScriptNotFound();
         }
 
         // Phase 2: Transaction Verification and Storage
-        // Step 3: Verify transaction inclusion in blockchain and store transaction data
+        // Step 2: Verify transaction inclusion in blockchain and store transaction data
         // This validates the merkle proof and stores transaction for future reference
         bytes32 txId = IBitcoinTxStore(bitcoinTxStore).verifyAndStoreTransaction(
             _rawTx,
@@ -237,7 +230,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         );
 
         // Phase 3: Transaction Analysis and Validation
-        // Step 4: Analyze transaction to determine transfer type and extract key information
+        // Step 3: Analyze transaction to determine transfer type and extract key information
         // This validates transaction structure and identifies the type of cross-chain operation
         (
             uint32 custodianId,
@@ -250,10 +243,10 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
             _toPkScripts
         );
 
-        // Step 5: Skip processing if transfer type is unknown
+        // Step 4: Skip processing if transfer type is unknown
         if (transferType == TransferType.Unknown) { return; }
 
-        // Step 6: Check if transaction has already been processed
+        // Step 5: Check if transaction has already been processed
         // Prevents double-processing of the same transaction
         if (provenTransactions[txId]) {
             revert DuplicateTransaction(txId);
@@ -261,7 +254,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         provenTransactions[txId] = true;
 
         // Phase 4: Transaction Processing
-        // Step 7: Route to appropriate handler based on transfer type
+        // Step 6: Route to appropriate handler based on transfer type
         if (transferType == TransferType.PegInDeposited) {
             // Handle Bitcoin deposit for peg-in operation
             _createPegInRequest(

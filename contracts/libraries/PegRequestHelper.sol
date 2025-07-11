@@ -326,6 +326,14 @@ library PegRequestHelper {
         require(settledAmount != 0, "PegRequestHelper: invalid settled amount");
     }
 
+    /// @notice Calculates treasury fee distribution for peg-in operations
+    /// @dev Retrieves fee recipient addresses and their share percentages from configuration,
+    /// then calculates the proportional amount each recipient should receive from the total treasury fee.
+    /// Uses the deposit timestamp to get the fee configuration that was active at the time of deposit.
+    /// @param _request Peg-in request containing treasury fee and deposit timestamp
+    /// @param _configRegistry Configuration registry for fee recipient and share information
+    /// @return recipients Array of fee recipient addresses
+    /// @return recipientAmounts Array of fee amounts for each recipient (corresponds to recipients array)
     function calculatePegInTreasuryFeeSplits(
         PegRequest storage _request,
         IConfigRegistry _configRegistry
@@ -344,6 +352,14 @@ library PegRequestHelper {
         recipientAmounts = splitAmounts(shares, _request.treasuryFee);
     }
 
+    /// @notice Calculates treasury fee distribution for peg-out operations
+    /// @dev Retrieves fee recipient addresses and their share percentages from configuration,
+    /// then calculates the proportional amount each recipient should receive from the total treasury fee.
+    /// Uses the request timestamp to get the fee configuration that was active at the time of request creation.
+    /// @param _request Peg-out request containing treasury fee and request timestamp
+    /// @param _configRegistry Configuration registry for fee recipient and share information
+    /// @return recipients Array of fee recipient addresses
+    /// @return recipientAmounts Array of fee amounts for each recipient (corresponds to recipients array)
     function calculatePegOutTreasuryFeeSplits(
         PegRequest storage _request,
         IConfigRegistry _configRegistry

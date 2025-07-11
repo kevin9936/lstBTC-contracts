@@ -18,10 +18,6 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
  * consistent access control across all protocol contracts.
  */
 abstract contract AccessControlBase is Initializable, AccessControlUpgradeable {
-    /// @notice Thrown when a zero address is provided where not allowed
-    /// @dev Used to validate that addresses are not zero before performing operations
-    error ZeroAddress();
-
     /// @notice Thrown when an unauthorized address attempts an operation
     /// @dev Used when an address without proper permissions tries to call restricted functions
     /// @param caller Address that attempted the unauthorized operation
@@ -38,7 +34,7 @@ abstract contract AccessControlBase is Initializable, AccessControlUpgradeable {
     function __AccessControlBase_init(
         address _admin,
         address _governor
-    ) internal onlyInitializing nonZeroAddress(_admin) nonZeroAddress(_governor) {
+    ) internal onlyInitializing {
         AccessControlUpgradeable.__AccessControl_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
@@ -61,14 +57,6 @@ abstract contract AccessControlBase is Initializable, AccessControlUpgradeable {
     /// @dev Checks if caller has either DEFAULT_ADMIN_ROLE or ROLE_GOVERNOR
     modifier onlyGovernor() {
         _checkRole(ROLE_GOVERNOR, _msgSender());
-        _;
-    }
-
-    /// @notice Ensures the provided address is not zero
-    /// @dev Reverts with ZeroAddress error if address is zero
-    /// @param _account Address to validate
-    modifier nonZeroAddress(address _account) {
-        if (_account == address(0)) { revert ZeroAddress(); }
         _;
     }
 }

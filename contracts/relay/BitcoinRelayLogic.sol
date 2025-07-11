@@ -330,8 +330,6 @@ contract BitcoinRelayLogic is IBitcoinRelay,
         require(_merkleProof.length > 0, "BitcoinRelay: empty merkle proof");
 
         txId = BitcoinHelper.calculateTxId(_rawTx);
-        require(txId != bytes32(0), "BitcoinRelay: invalid txid (zero)");
-
         require(
             _checkMerkleProof(txId, _blockHeight, _merkleProof, _index),
             "BitcoinRelay: transaction not finalized"

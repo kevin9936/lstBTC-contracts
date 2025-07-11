@@ -146,9 +146,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// @notice Updates the configuration registry address
     /// @dev Only governor can update the config registry
     /// @param _configRegistry New configuration registry address
-    function setConfigRegistry(
-        address _configRegistry
-    ) external onlyGovernor nonZeroAddress(_configRegistry) {
+    function setConfigRegistry(address _configRegistry) external onlyGovernor {
         if (_configRegistry == configRegistry) { return; }
 
         emit ConfigRegistryUpdated(configRegistry, _configRegistry);
@@ -158,9 +156,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// @notice Updates the whitelist registry address
     /// @dev Only governor can update the whitelist registry
     /// @param _whitelistRegistry New whitelist registry address
-    function setWhitelistRegistry(
-        address _whitelistRegistry
-    ) external onlyGovernor nonZeroAddress(_whitelistRegistry) {
+    function setWhitelistRegistry(address _whitelistRegistry) external onlyGovernor {
         if (_whitelistRegistry == whitelistRegistry) { return; }
 
         emit WhitelistRegistryUpdated(whitelistRegistry, _whitelistRegistry);
@@ -170,9 +166,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// @notice Updates the NAV provider address
     /// @dev Only governor can update the NAV provider
     /// @param _navProvider New NAV provider address
-    function setNavProvider(
-        address _navProvider
-    ) external onlyGovernor nonZeroAddress(_navProvider) {
+    function setNavProvider(address _navProvider) external onlyGovernor {
         if (_navProvider == navProvider) { return; }
 
         emit NavProviderUpdated(navProvider, _navProvider);
@@ -182,9 +176,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// @notice Updates the Bitcoin relay address
     /// @dev Only governor can update the Bitcoin relay
     /// @param _bitcoinRelay New Bitcoin relay address
-    function setBitcoinRelay(
-        address _bitcoinRelay
-    ) external onlyGovernor nonZeroAddress(_bitcoinRelay) {
+    function setBitcoinRelay(address _bitcoinRelay) external onlyGovernor {
         if (_bitcoinRelay == bitcoinRelay) { return; }
 
         emit BitcoinRelayUpdated(bitcoinRelay, _bitcoinRelay);
@@ -194,7 +186,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// @notice Updates the lstBTC token address
     /// @dev Only governor can update the lstBTC token contract
     /// @param _lstBTC New lstBTC token address
-    function setLstBTC(address _lstBTC) external onlyGovernor nonZeroAddress(_lstBTC) {
+    function setLstBTC(address _lstBTC) external onlyGovernor {
         if (_lstBTC == lstBTC) { return; }
 
         emit LstBTCUpdated(lstBTC, _lstBTC);

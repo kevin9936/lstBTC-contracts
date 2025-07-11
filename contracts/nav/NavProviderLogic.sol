@@ -111,7 +111,7 @@ contract NavProviderLogic is
     /// @notice Updates the bridge contract address
     /// @dev Only governor can update the bridge address
     /// @param _bridge New bridge contract address
-    function setBridge(address _bridge) external onlyGovernor nonZeroAddress(_bridge) {
+    function setBridge(address _bridge) external onlyGovernor {
         if (_bridge == bridge) { return; }
 
         emit BridgeUpdated(bridge, _bridge);

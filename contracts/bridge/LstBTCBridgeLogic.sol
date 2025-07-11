@@ -370,8 +370,8 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
         uint32 batchId = _allocBatchId();
 
-        uint64 pendingPayWrappedAmount = _processPegInBatch(pegInIds, custodianId, batchId);
         uint64 pendingPayBTCAmount = _processPegOutBatch(pegOutIds, custodianId, batchId);
+        uint64 pendingPayWrappedAmount = _processPegInBatch(pegInIds, custodianId, batchId);
 
         if (pegInIds.length == 0) {
             batches[batchId].isPegInSettled = true;

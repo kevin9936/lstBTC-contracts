@@ -32,7 +32,6 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
     /// @dev Represents a full Bitcoin transaction with all inputs and outputs.
     /// Follows Bitcoin protocol specification for transaction format
     struct Transaction {
-        uint32 blockHeight; // Block height where transaction was included
         uint32 lockTime;    // Transaction lock time (nLockTime field)
         TxIn[] inputs;      // Array of transaction inputs (vin)
         TxOut[] outputs;    // Array of transaction outputs (vout)
@@ -101,7 +100,6 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
 
         _setRoleAdmin(ROLE_RELAYER, ROLE_GOVERNOR);
 
-        require(_btcLightClient != address(0), "BitcoinTxStore: btc light client is zero address");
         btcLightClient = _btcLightClient;
         initialHeight = _initialHeight;
         finalizationParameter = _finalizationParameter;
@@ -165,46 +163,24 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
         return blockTimestamp;
     }
 
-    /// @notice Gets the block height where a specific transaction was included
-    /// @dev Returns the Bitcoin block height where the transaction was mined.
-    /// Transaction must be finalized (have sufficient confirmations) to be queryable.
-    /// Block height represents the position of the block in the Bitcoin blockchain
-    /// @param _txId Transaction ID to get block height for (in little-endian format)
-    /// @return Block height where the transaction was included
-    function getTransactionBlockHeight(bytes32 _txId) external override view returns(uint32) {
-        require(transactions[_txId].blockHeight != 0, "BitcoinTxStore: transaction not finalized");
-        return transactions[_txId].blockHeight;
-    }
-
-    /// @notice Gets the lock time for a specific transaction
-    /// @param _txId Transaction ID to get lock time for
-    /// @return Transaction lock time
-    function getTransactionLockTime(bytes32 _txId) external override view returns (uint32) {
-        require(transactions[_txId].blockHeight != 0, "BitcoinTxStore: transaction not finalized");
-        return transactions[_txId].lockTime;
-    }
-
     /// @notice Gets the number of inputs for a specific transaction
+    /// @dev Returns 0 if transaction does not exist (no existence check required)
     /// @param _txId Transaction ID to get input count for
     /// @return Number of inputs in the transaction
     function getInputCount(bytes32 _txId) external override view returns (uint16) {
-        Transaction storage txData = transactions[_txId];
-        require(txData.blockHeight != 0, "BitcoinTxStore: transaction not finalized");
-
-        return txData.inputs.length.toUint16();
+        return transactions[_txId].inputs.length.toUint16();
     }
 
     /// @notice Gets the number of outputs for a specific transaction
+    /// @dev Returns 0 if transaction does not exist (no existence check required)
     /// @param _txId Transaction ID to get output count for
     /// @return Number of outputs in the transaction
     function getOutputCount(bytes32 _txId) external override view returns (uint16) {
-        Transaction storage txData = transactions[_txId];
-        require(txData.blockHeight != 0, "BitcoinTxStore: transaction not finalized");
-
-        return txData.outputs.length.toUint16();
+        return transactions[_txId].outputs.length.toUint16();
     }
 
     /// @notice Gets a specific input from a transaction
+    /// @dev Reverts if transaction does not exist or input index is out of bounds
     /// @param _txId Transaction ID to get input from
     /// @param _index Index of the input to retrieve
     /// @return Input transaction hash and output index
@@ -212,17 +188,15 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
         bytes32 _txId,
         uint16 _index
     ) external override view returns (bytes32, uint32) {
-        Transaction storage txData = transactions[_txId];
-        require(txData.blockHeight != 0, "BitcoinTxStore: transaction not finalized");
+        TxIn[] storage inputs = transactions[_txId].inputs;
+        require(_index < inputs.length, "BitcoinTxStore: input index out of bounds");
 
-        uint256 inputCount = txData.inputs.length;
-        require(_index < inputCount, "BitcoinTxStore: input index out of bounds");
-
-        TxIn storage input = txData.inputs[_index];
+        TxIn storage input = inputs[_index];
         return (input.hash, input.index);
     }
 
     /// @notice Returns a specific output from a transaction
+    /// @dev Reverts if transaction does not exist or output index is out of bounds
     /// @param _txId Transaction ID to get output from
     /// @param _index Index of the output to retrieve
     /// @return payloadHash keccak256 hash of the script public key (scriptPubKey) that locks the output
@@ -231,18 +205,16 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
         bytes32 _txId,
         uint16 _index
     ) external override view returns (bytes32, uint64) {
-        Transaction storage txData = transactions[_txId];
-        require(txData.blockHeight != 0, "BitcoinTxStore: transaction not finalized");
+        TxOut[] storage outputs = transactions[_txId].outputs;
+        require(_index < outputs.length, "BitcoinTxStore: output index out of bounds");
 
-        uint256 outputCount = txData.outputs.length;
-        require(_index < outputCount, "BitcoinTxStore: output index out of bounds");
-
-        TxOut storage output = txData.outputs[_index];
+        TxOut storage output = outputs[_index];
         return (output.payloadHash, output.value);
     }
 
     /// @notice Finds a transaction output by script public key
-    /// @dev Searches through all outputs to find matching script hash
+    /// @dev Returns (false, 0, 0) if transaction does not exist or output not found.
+    /// Searches through all outputs to find matching script hash
     /// @param _txId Transaction ID to search in
     /// @param _expectedPkScript Expected script public key to find
     /// @return found Whether the output was found
@@ -252,16 +224,14 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
         bytes32 _txId,
         bytes calldata _expectedPkScript
     ) external override view returns (bool found, uint64 amount, uint16 index) {
-        Transaction storage txData = transactions[_txId];
-        require(txData.blockHeight != 0, "BitcoinTxStore: transaction not finalized");
-
         bytes32 expectedHash = keccak256(_expectedPkScript);
-        uint256 outputCount = txData.outputs.length;
+
+        TxOut[] storage outputs = transactions[_txId].outputs;
+        uint16 outputCount = outputs.length.toUint16();
 
         for (uint16 i = 0; i < outputCount; ++i) {
-            // Only compare hashes if lengths match
-            if (txData.outputs[i].payloadHash == expectedHash) {
-                return (true, txData.outputs[i].value, i);
+            if (outputs[i].payloadHash == expectedHash) {
+                return (true, outputs[i].value, i);
             }
         }
 
@@ -269,7 +239,9 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
     }
 
     /// @notice Checks if all transaction inputs come from the same script public key
-    /// @dev Validates that all input sources match the expected script hash
+    /// @dev Returns false if transaction does not exist or has no inputs.
+    /// Reverts if referenced transaction does not exist or input index is out of bounds.
+    /// Validates that all input sources match the expected script hash
     /// @param _txId Transaction ID to check
     /// @param _expectedPkScript Expected script public key for all inputs
     /// @return True if all inputs come from the expected script, false otherwise
@@ -277,20 +249,20 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
         bytes32 _txId,
         bytes calldata _expectedPkScript
     ) external override view returns (bool) {
-        Transaction storage txData = transactions[_txId];
-        require(txData.blockHeight != 0, "BitcoinTxStore: transaction not finalized");
+        TxIn[] storage inputs = transactions[_txId].inputs;
+
+        uint16 inputCount = inputs.length.toUint16();
+        if (inputCount == 0) { return false; }
 
         bytes32 expectedHash = keccak256(_expectedPkScript);
-        uint256 inputCount = txData.inputs.length;
+        for (uint16 i = 0; i < inputCount; ++i) {
+            TxIn storage input = inputs[i];
 
-        for (uint256 i = 0; i < inputCount; ++i) {
-            TxIn storage input = txData.inputs[i];
-            Transaction storage prevTx = transactions[input.hash];
+            TxOut[] storage prevTxOutputs = transactions[input.hash].outputs;
+            require(prevTxOutputs.length != 0, "BitcoinTxStore: referenced tx not found");
+            require(input.index < prevTxOutputs.length, "BitcoinTxStore: output index out of bounds");
 
-            require(prevTx.blockHeight != 0, "BitcoinTxStore: referenced tx not found");
-            require(input.index < prevTx.outputs.length, "BitcoinTxStore: output index out of bounds");
-
-            if (prevTx.outputs[input.index].payloadHash != expectedHash) {
+            if (prevTxOutputs[input.index].payloadHash != expectedHash) {
                 return false;
             }
         }
@@ -302,12 +274,12 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
     /// @dev Bigger finalization parameter increases security but also increases the delay
     /// @param _finalizationParameter The finalization parameter of Bitcoin
     function setFinalizationParameter(uint32 _finalizationParameter) external override onlyGovernor {
-        emit NewFinalizationParameter(finalizationParameter, _finalizationParameter);
         require(
             _finalizationParameter > 0 && _finalizationParameter <= MAX_FINALIZATION_PARAMETER,
             "BitcoinTxStore: invalid finalization param"
         );
 
+        emit NewFinalizationParameter(finalizationParameter, _finalizationParameter);
         finalizationParameter = _finalizationParameter;
     }
 
@@ -326,21 +298,22 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
         bytes32[] calldata _merkleProof,
         uint32 _index
     ) external override whenNotPaused onlyRelayer returns (bytes32 txId) {
+        require(_rawTx.length > 0, "BitcoinTxStore: empty raw transaction");
         require(_blockHeight >= initialHeight, "BitcoinTxStore: block number below initial height");
         require(_merkleProof.length > 0, "BitcoinTxStore: empty merkle proof");
 
         txId = BitcoinHelper.calculateTxId(_rawTx);
+
         require(
             _checkMerkleProof(txId, _blockHeight, _merkleProof, _index),
             "BitcoinTxStore: transaction not finalized"
         );
 
-        if (transactions[txId].blockHeight == 0) {
+        if (transactions[txId].outputs.length == 0) {
             (,  bytes29 vinView, bytes29 voutView, uint32 lockTime) = _rawTx.extractTx();
             _parseAndStoreInputs(txId, vinView);
             _parseAndStoreOutputs(txId, voutView);
 
-            transactions[txId].blockHeight = _blockHeight;
             transactions[txId].lockTime = lockTime;
 
             emit TransactionSubmitted(txId, _blockHeight, lastSubmittedHeight());
@@ -379,8 +352,8 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
 
     /// @notice Parses and stores Bitcoin transaction inputs (vin)
     /// @dev Extracts input data following Bitcoin protocol specification.
-    /// Marks referenced UTXOs as spent and tracks spending block height.
-    /// Handles coinbase and regular transaction inputs
+    /// Handles coinbase and regular transaction inputs.
+    /// Note: Empty input arrays are valid for coinbase transactions
     /// @param _txId Transaction ID to store inputs for
     /// @param _vinView Transaction input view from Bitcoin helper library
     function _parseAndStoreInputs(
@@ -388,23 +361,23 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
         bytes29 _vinView
     ) internal {
         uint16 inputCount = _vinView.indexCompactInt(0).toUint16();
-        require(inputCount != 0, "BitcoinTxStore: vin is empty");
 
         for (uint16 i = 0; i < inputCount; ++i) {
             (bytes32 txId, uint256 index) = _vinView.extractOutpoint(i);
 
             transactions[_txId].inputs.push(TxIn({
                 hash: txId,
-                index: uint32(index)
+                index: index.toUint32()
             }));
         }
     }
 
     /// @notice Parses and stores Bitcoin transaction outputs (vout)
     /// @dev Extracts output data following Bitcoin protocol specification.
-    /// Stores the keccak256 hash of the script public key (scriptPubKey) for each output
+    /// Stores the keccak256 hash of the script public key (scriptPubKey) for each output.
     /// Handles script public keys (scriptPubKey) and output values in satoshis.
-    /// Supports OP_RETURN outputs and standard payment scripts
+    /// Supports OP_RETURN outputs and standard payment scripts.
+    /// Note: Empty output arrays are not valid Bitcoin transactions
     /// @param _txId Transaction ID to store outputs for
     /// @param _voutView Transaction output view from Bitcoin helper library
     function _parseAndStoreOutputs(
@@ -412,7 +385,7 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
         bytes29 _voutView
     ) internal {
         uint16 outputCount = _voutView.indexCompactInt(0).toUint16();
-        require(outputCount != 0, "vout is empty");
+        require(outputCount != 0, "BitcoinTxStore: vout is empty");
 
         for (uint16 i = 0; i < outputCount; ++i) {
             bytes29 outputView = _voutView.indexVout(i);

@@ -56,27 +56,20 @@ interface IBitcoinTxStore {
     /// @return Block timestamp
     function getBlockTimestamp(uint32 _blockNumber) external view returns(uint64);
 
-    /// @notice Returns the block height where a Bitcoin transaction was included
-    /// @param _txId Bitcoin transaction ID (in little-endian format)
-    /// @return Block height where the transaction was included
-    function getTransactionBlockHeight(bytes32 _txId) external view returns(uint32);
-
-    /// @notice Returns the lock time of a Bitcoin transaction
-    /// @param _txId Bitcoin transaction ID
-    /// @return Transaction lock time
-    function getTransactionLockTime(bytes32 _txId) external view returns(uint32);
-
     /// @notice Returns the number of inputs in a Bitcoin transaction
+    /// @dev Returns 0 if transaction does not exist
     /// @param _txId Bitcoin transaction ID
     /// @return Number of transaction inputs
     function getInputCount(bytes32 _txId) external view returns (uint16);
 
     /// @notice Returns the number of outputs in a Bitcoin transaction
+    /// @dev Returns 0 if transaction does not exist
     /// @param _txId Bitcoin transaction ID
     /// @return Number of transaction outputs
     function getOutputCount(bytes32 _txId) external view returns (uint16);
 
     /// @notice Returns a specific input from a Bitcoin transaction
+    /// @dev Reverts if transaction does not exist or input index is out of bounds
     /// @param _txId Bitcoin transaction ID
     /// @param _index Index of the input to retrieve
     /// @return prevTxId Previous transaction ID (outpoint)
@@ -87,6 +80,7 @@ interface IBitcoinTxStore {
     ) external view returns (bytes32, uint32);
 
     /// @notice Returns a specific output from a Bitcoin transaction
+    /// @dev Reverts if transaction does not exist or output index is out of bounds
     /// @param _txId Bitcoin transaction ID
     /// @param _index Index of the output to retrieve
     /// @return payloadHash keccak256 hash of the script public key (scriptPubKey) that locks the output
@@ -97,6 +91,8 @@ interface IBitcoinTxStore {
     ) external view returns (bytes32 payloadHash, uint64 amount);
 
     /// @notice Finds a transaction output by its public key script
+    /// @dev Returns (false, 0, 0) if transaction does not exist or output not found.
+    /// Searches through all outputs to find matching script hash
     /// @param _txId Bitcoin transaction ID
     /// @param _expectedPkScript Expected public key script to search for
     /// @return found Whether the output was found
@@ -108,6 +104,8 @@ interface IBitcoinTxStore {
     ) external view returns (bool found, uint64 amount, uint16 index);
 
     /// @notice Checks if all inputs of a transaction come from a specific public key script
+    /// @dev Returns false if transaction does not exist or has no inputs.
+    /// Reverts if referenced transaction does not exist or input index is out of bounds
     /// @param _txId Bitcoin transaction ID
     /// @param _expectedPkScript Expected public key script for all inputs
     /// @return Whether all inputs come from the expected script

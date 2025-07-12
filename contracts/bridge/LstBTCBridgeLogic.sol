@@ -44,15 +44,6 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// @notice Thrown when transaction has already been processed
     error DuplicateTransaction(bytes32 txId);
 
-    /// @notice Thrown when input public key scripts do not match expected values
-    error InputPkScriptsMismatch(bytes32 txId, bytes[] pkScripts);
-
-    /// @notice Thrown when output public key scripts do not match expected values
-    error OutputPkScriptsMismatch(bytes32 txId, bytes[] pkScripts);
-
-    /// @notice Thrown when transaction has non-zero lock time
-    error NonZeroLockTime(bytes32 txId);
-
     /// @notice Thrown when batch has no requests to process
     error BatchRequestsEmpty();
 
@@ -353,7 +344,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
             uint32 custodianId,
             TransferType transferType
         ) = PegRequestHelper.analyzeWrappedBTCTransfer(
-            ILstBTCBridge(this),
+            IWhitelistRegistry(whitelistRegistry),
             _from,
             _to
         );

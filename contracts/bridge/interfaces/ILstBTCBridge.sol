@@ -66,16 +66,6 @@ interface ILstBTCBridge is ILstBTCBridgeStorage  {
         uint64 pendingRefundWrappedBTCAmount
     );
 
-    /// @notice Emitted when treasury fees are assigned to recipients
-    /// @param requestId ID of the request generating the fees
-    /// @param recipients Array of fee recipient addresses
-    /// @param amounts Array of fee amounts for each recipient
-    event TreasuryFeeAssigned(
-        uint256 indexed requestId,
-        address[] recipients,
-        uint64[] amounts
-    );
-
     /// @notice Emitted when treasury fees are accumulated in a batch
     /// @param batchId ID of the batch containing the fees
     /// @param requestId ID of the request generating the fees

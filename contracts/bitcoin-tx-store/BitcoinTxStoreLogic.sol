@@ -393,17 +393,15 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
             bytes29 arbitraryData = scriptPubkeyWithLength.opReturnPayload();
 
             uint64 value;
-            bytes memory payload;
+            bytes32 payloadHash;
             if(arbitraryData == TypedMemView.NULL) {
                 value = outputView.value();
-                payload = outputView.scriptPubkey().clone();
-            } else {
-                payload = arbitraryData.clone();
+                payloadHash = keccak256(outputView.scriptPubkey().clone());
             }
 
             transactions[_txId].outputs.push(TxOut({
                 value: value,
-                payloadHash: keccak256(payload)
+                payloadHash: payloadHash
             }));
         }
     }

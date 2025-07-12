@@ -189,21 +189,20 @@ library PegRequestHelper {
     /// - PegInPaid: OPERATIONS -> INBOUND (custodian pays lstBTC for approved peg-in)
     /// - PegOutRefunded: OPERATIONS -> OUTBOUND (custodian refunds lstBTC for rejected peg-out)
     ///
-    /// @param _bridge Bridge contract for accessing whitelist registry
+    /// @param _whitelistRegistry Whitelist registry for checking address permissions
     /// @param _fromAddress Source address sending lstBTC tokens
     /// @param _toAddress Destination address receiving lstBTC tokens
     /// @return custodianId ID of the custodian involved in the transfer
     /// @return transferType Type of transfer (PegOutDeposited, PegInPaid, PegOutRefunded)
     function analyzeWrappedBTCTransfer(
-        ILstBTCBridge _bridge,
+        IWhitelistRegistry _whitelistRegistry,
         address _fromAddress,
         address _toAddress
     ) external view returns (uint32, TransferType) {
         // Phase 1: Source Address Validation
         // Step 1: Check if source address is whitelisted and get its usage pattern
         // Validates that the source address is authorized and determines its role
-        IWhitelistRegistry whitelistRegistry = IWhitelistRegistry(_bridge.whitelistRegistry());
-        (uint32 fromGroupId, uint8 fromUsage) = whitelistRegistry.getWhitelistEntry(
+        (uint32 fromGroupId, uint8 fromUsage) = _whitelistRegistry.getWhitelistEntry(
             abi.encodePacked(_fromAddress)
         );
         if (fromGroupId == 0 || fromUsage == 0) {
@@ -213,7 +212,7 @@ library PegRequestHelper {
         // Phase 2: Destination Address Validation
         // Step 2: Check if destination address is whitelisted and get its usage pattern
         // Validates that the destination address is authorized and determines its role
-        (uint32 toGroupId, uint8 toUsage) = whitelistRegistry.getWhitelistEntry(
+        (uint32 toGroupId, uint8 toUsage) = _whitelistRegistry.getWhitelistEntry(
             abi.encodePacked(_toAddress)
         );
         if (toGroupId == 0 || toUsage == 0) {

@@ -47,9 +47,6 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// @notice Thrown when batch has no requests to process
     error BatchRequestsEmpty();
 
-    /// @notice Thrown when batch request length exceeds bounds
-    error BatchRequestLengthOutOfBounds(uint256 requestLength);
-
     /// @notice Thrown when batch is not found for the custodian
     error BatchNotFound(uint32 custodianId);
 
@@ -371,7 +368,9 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         uint256[] calldata pegInIds,
         uint256[] calldata pegOutIds
     ) external nonReentrant whenNotPaused {
-        _requireValidBatchParams(pegInIds, pegOutIds);
+        if (pegInIds.length == 0 && pegOutIds.length == 0) {
+            revert BatchRequestsEmpty();
+        }
 
         uint32 custodianId = _requireWhitelistedOperatorNoPendingBatch();
 
@@ -412,7 +411,9 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         uint256[] calldata pegInIds,
         uint256[] calldata pegOutIds
     ) external whenNotPaused {
-        _requireValidBatchParams(pegInIds, pegOutIds);
+        if (pegInIds.length == 0 && pegOutIds.length == 0) {
+            revert BatchRequestsEmpty();
+        }
 
         uint32 custodianId = _requireWhitelistedOperatorNoPendingBatch();
         uint32 batchId = _allocBatchId();
@@ -585,27 +586,6 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         }
 
         return custodianId;
-    }
-
-    /// @notice Validates batch parameters for processing
-    /// @dev Ensures at least one request exists and arrays are within bounds
-    /// @param pegInIds Array of peg-in request IDs
-    /// @param pegOutIds Array of peg-out request IDs
-    function _requireValidBatchParams(
-        uint256[] calldata pegInIds,
-        uint256[] calldata pegOutIds
-    ) internal pure {
-        if (pegInIds.length == 0 && pegOutIds.length == 0) {
-            revert BatchRequestsEmpty();
-        }
-
-        if (pegInIds.length > type(uint16).max) {
-            revert BatchRequestLengthOutOfBounds(pegInIds.length);
-        }
-
-        if (pegOutIds.length > type(uint16).max) {
-            revert BatchRequestLengthOutOfBounds(pegOutIds.length);
-        }
     }
 
     /// @notice Creates a new peg-in request from Bitcoin deposit

@@ -264,7 +264,7 @@ library BitcoinHelper {
     function parseOutputsTotalValue(bytes memory _vout) internal pure returns (uint64) {
         bytes29 voutView = tryAsVout(_vout.ref(uint40(BTCTypes.Unknown)));
         require(!voutView.isNull(), "BitcoinHelper: vout is null");
-        return parseOutputsTotalValue(_vout);
+        return parseOutputsTotalValue(voutView);
     }
 
     /// @notice                   Finds total outputs value
@@ -540,14 +540,20 @@ library BitcoinHelper {
     /// @return         the Op Return Payload (or null if not a valid Op Return output)
     function opReturnPayload(bytes29 _spk) internal pure typeAssert(_spk, BTCTypes.ScriptPubkey) returns (bytes29) {
         uint64 _bodyLength = indexCompactInt(_spk, 0);
-        uint64 _payloadLen = _spk.indexUint(2, 1).toUint64();
-        if (_spk.indexUint(1, 1) != 0x6a || _spk.indexUint(2, 1) != _bodyLength - 2) {
-            // This means that this output is not OP_RETURN
-            return TypedMemView.nullView();
+        if (_spk.indexUint(1, 1) == 0x6a) {
+            if (_spk.indexUint(2, 1) == 0x4c) {
+                uint64 _payloadLen = _spk.indexUint(3, 1).toUint64();
+                require(_payloadLen == _bodyLength - 3 &&
+                    _bodyLength <= 83 && _bodyLength >= 79, "BitcoinHelper: invalid opreturn");
+                return _spk.slice(4, _payloadLen, uint40(BTCTypes.OpReturnPayload));
+            } else {
+                uint64 _payloadLen = _spk.indexUint(2, 1).toUint64();
+                require(_payloadLen == _bodyLength - 2 &&
+                    _bodyLength <= 77 && _bodyLength >= 4, "BitcoinHelper: invalid opreturn");
+                return _spk.slice(3, _payloadLen, uint40(BTCTypes.OpReturnPayload));
+            }
         }
-        // Extra checks for OP_RETURN
-        require(_bodyLength <= 83 && _bodyLength >= 4, "BitcoinHelper: invalid opreturn");
-        return _spk.slice(3, _payloadLen, uint40(BTCTypes.OpReturnPayload));
+        return TypedMemView.nullView();
     }
 
     /// @notice     verifies the vin and converts to a typed memory
@@ -739,15 +745,17 @@ library BitcoinHelper {
     /// @param _b        The second hash
     /// @return digest   The double-sha256 of the concatenated hashes
     function merkleStep(bytes32 _a, bytes32 _b) private view returns (bytes32 digest) {
+        bool res;
         assembly {
         // solium-disable-previous-line security/no-inline-assembly
             let ptr := mload(0x40)
             mstore(ptr, _a)
             mstore(add(ptr, 0x20), _b)
-            pop(staticcall(gas(), 2, ptr, 0x40, ptr, 0x20)) // sha256 #1
-            pop(staticcall(gas(), 2, ptr, 0x20, ptr, 0x20)) // sha256 #2
+            res := staticcall(gas(), 2, ptr, 0x40, ptr, 0x20) // sha256 #1
+            res := and(res, staticcall(gas(), 2, ptr, 0x20, ptr, 0x20)) // sha256 #2
             digest := mload(ptr)
         }
+        require(res, "merklestep OOG");
     }
 
     /// @notice                 performs the bitcoin difficulty retarget

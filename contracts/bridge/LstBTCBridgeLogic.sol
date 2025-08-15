@@ -71,6 +71,9 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// @notice Thrown when settlement amount does not match expected amount
     error InvalidSettlementAmount(uint32 custodianId, uint32 batchId, uint64 expectedAmount, uint64 actualAmount);
 
+    /// @notice Thrown when repayment amount exceeds current debt
+    error RepaymentAmountExceeds(uint32 custodianId, uint64 repaymentAmount, uint64 debt);
+
     // Role for authorized transaction submitters who can submit transaction proofs
     bytes32 public constant ROLE_RELAYER = keccak256("ROLE_RELAYER");
 
@@ -186,7 +189,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     ///
     /// Parameter specifications:
     /// - _fromPkScript: When not bytes(0), indicates that ALL transaction inputs reference UTXOs from this pkScript.
-    ///   This pkScript must be whitelisted. When bytes(0), no input validation is performed.
+    ///   This pkScript must be whitelisted. When bytes(0), indicates that the transaction inputs reference UTXOs from multiple pkScripts.
     /// - _toPkScripts: Contains ALL whitelisted pkScripts from transaction outputs, deduplicated.
     ///   If any pkScript in this array equals _fromPkScript, it must be placed as the last element.
     ///   This represents change back to the source address.
@@ -248,12 +251,13 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         // Step 5: Validate transaction structure and extract transfer amount
         // This validates transaction structure and ensures security requirements
         // Validates that all inputs come from the specified source and outputs match expectations
-        (, uint64 outputAmount) = PegRequestHelper.validateStandardTransfer(
+        (bool isValid, uint64 outputAmount) = PegRequestHelper.validateStandardTransfer(
             IBitcoinTxStore(bitcoinTxStore),
             txId,
             _fromPkScript,
             _toPkScripts
         );
+        if (!isValid) { return; }
 
         // Phase 5: Duplicate Prevention
         // Step 6: Check if transaction has already been processed
@@ -447,7 +451,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// @notice Allows users to claim accumulated fees
     /// @dev Transfers lstBTC fees to the caller and resets their claimable amount.
     /// Only callable by users who have accumulated fees
-    function claimFees() external nonReentrant {
+    function claimFees() external nonReentrant whenNotPaused {
         uint64 amount = claimableFees[_msgSender()];
         if (amount == 0) { return; }
 
@@ -902,11 +906,14 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         uint32 _custodianId
     ) internal {
         uint64 currentDebt = custodianDatas[_custodianId].debt;
-        uint64 repaidAmount = currentDebt >= _amount ? _amount : currentDebt;
-        uint64 newDebt = currentDebt - repaidAmount;
+        if (_amount > currentDebt) {
+            revert RepaymentAmountExceeds(_custodianId, _amount, currentDebt);
+        }
+
+        uint64 newDebt = currentDebt - _amount;
 
         custodianDatas[_custodianId].debt = newDebt;
-        totalDebt -= repaidAmount;
+        totalDebt -= _amount;
 
         emit Repaid(
             _custodianId,
@@ -972,12 +979,14 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
 
         INavProvider(navProvider).increasePeggedBTC(request.amount);
 
-        (
-            address[] memory recipients,
-            uint64[] memory recipientAmounts
-        ) = request.calculatePegInTreasuryFeeSplits(IConfigRegistry(configRegistry));
+        if (request.treasuryFee > 0) {
+            (
+                address[] memory recipients,
+                uint64[] memory recipientAmounts
+            ) = request.calculatePegInTreasuryFeeSplits(IConfigRegistry(configRegistry));
 
-        _settleTreasuryFees(_batchId, _requestId, recipients, recipientAmounts);
+            _settleTreasuryFees(_batchId, _requestId, recipients, recipientAmounts);
+        }
 
         request.batchId = _batchId;
         request.status = PegStatus.PendingPayout;
@@ -1036,12 +1045,14 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         uint64 unpeggedBTC = request.netAmount + request.transactionFee;
         INavProvider(navProvider).decreasePeggedBTC(unpeggedBTC);
 
-        (
-            address[] memory recipients,
-            uint64[] memory recipientAmounts
-        ) = request.calculatePegOutTreasuryFeeSplits(IConfigRegistry(configRegistry));
+        if (request.treasuryFee > 0) {
+            (
+                address[] memory recipients,
+                uint64[] memory recipientAmounts
+            ) = request.calculatePegOutTreasuryFeeSplits(IConfigRegistry(configRegistry));
 
-        _settleTreasuryFees(_batchId, _requestId, recipients, recipientAmounts);
+            _settleTreasuryFees(_batchId, _requestId, recipients, recipientAmounts);
+        }
 
         request.batchId = _batchId;
         request.status = PegStatus.PendingPayout;
@@ -1054,17 +1065,17 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
     /// @param _requestIds Array of peg-in request IDs to reject
     /// @param _custodianId ID of the custodian rejecting the batch
     /// @param _batchId ID of the batch being rejected
-    /// @return pendingRefundAount Total amount pending refund across all requests
+    /// @return pendingRefundAmount Total amount pending refund across all requests
     function _rejectPegInBatch(
         uint256[] calldata _requestIds,
         uint32 _custodianId,
         uint32 _batchId
-    ) internal returns (uint64 pendingRefundAount) {
+    ) internal returns (uint64 pendingRefundAmount) {
         uint256 reqCount = _requestIds.length;
 
         for (uint256 i = 0; i < reqCount; ++i) {
             uint256 requestId = _requestIds[i];
-            pendingRefundAount += pegInRequests[requestId].rejectPegInRequest(
+            pendingRefundAmount += pegInRequests[requestId].rejectPegInRequest(
                 _custodianId,
                 _batchId
             );
@@ -1104,6 +1115,7 @@ contract LstBTCBridgeLogic is ILstBTCBridge, LstBTCBridgeStorage,
         uint64[] memory _recipientAmounts
     ) internal {
         uint256 recipientCount = _recipients.length;
+
         for (uint256 i = 0; i < recipientCount; ++i) {
             if (_recipientAmounts[i] != 0) {
                 claimableFees[_recipients[i]] += _recipientAmounts[i];

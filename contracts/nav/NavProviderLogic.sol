@@ -36,7 +36,7 @@ contract NavProviderLogic is
     error ExchangeRateMustIncrease(uint64 oldExchangeRate, uint64 newExchangeRate);
 
     /// @notice Thrown when trying to decrease pegged BTC below zero
-    error PeggedBTCDecreaseOverflow(uint64 decreasedAmount, uint64 peggedBTC);
+    error PeggedBTCDecreasedAmountExceeds(uint64 decreasedAmount, uint64 peggedBTC);
 
     /// @notice Thrown when wrapped BTC amount exceeds pegged BTC amount
     error PeggedBTCInvariantViolated(uint64 wrappedBTC, uint64 peggedBTC);
@@ -134,8 +134,8 @@ contract NavProviderLogic is
     /// Cannot decrease below zero
     /// @param _decreasedAmount Amount of Bitcoin to remove (in satoshis)
     function decreasePeggedBTC(uint64 _decreasedAmount) external override onlyBridge {
-        if (_decreasedAmount >= peggedBTC) {
-            revert PeggedBTCDecreaseOverflow(_decreasedAmount, peggedBTC);
+        if (_decreasedAmount > peggedBTC) {
+            revert PeggedBTCDecreasedAmountExceeds(_decreasedAmount, peggedBTC);
         }
 
         peggedBTC -= _decreasedAmount;
@@ -174,7 +174,7 @@ contract NavProviderLogic is
     /// @return decimals Number of decimal places for the exchange rate
     function getExchangeRate(
         uint64 _timestamp
-    ) external view override whenNotPaused returns (
+    ) external view override returns (
         uint64 exchangeRate,
         uint8 decimals
     ) {
@@ -183,9 +183,11 @@ contract NavProviderLogic is
 
     /// @notice Gets the latest exchange rate
     /// @dev Reverts if no exchange rate is available
+    /// @return updateTime The timestamp when the latest exchange rate was last updated
     /// @return exchangeRate Latest exchange rate
     /// @return decimals Number of decimal places for the exchange rate
-    function getLatestExchangeRate() external view override whenNotPaused returns (
+    function getLatestExchangeRate() external view override returns (
+        uint64 updateTime,
         uint64 exchangeRate,
         uint8 decimals
     ) {
@@ -204,7 +206,7 @@ contract NavProviderLogic is
             revert PeggedBTCInvariantViolated(wrappedBTC, peggedBTC);
         }
 
-        (uint64 oldExchangeRate, uint8 decimals) = _fetchLatestExchangeRate();
+        (, uint64 oldExchangeRate, uint8 decimals) = _fetchLatestExchangeRate();
         uint256 rate = (peggedBTC * (10 ** decimals)) / wrappedBTC;
         uint64 newExchangeRate = rate.toUint64();
 
@@ -233,12 +235,13 @@ contract NavProviderLogic is
 
     /// @dev Retrieves the latest exchange rate from storage, reverts if none exists.
     function _fetchLatestExchangeRate() internal view returns (
+        uint64 updateTime,
         uint64 exchangeRate,
         uint8 decimals
     ) {
-        (bool exists, bytes memory encodedValue) = exchangeRates.getLatest();
+        (bool exists, uint64 timestamp, bytes memory encodedValue) = exchangeRates.getLatest();
         if (!exists) { revert ExchangeRateUnavailable(); }
 
-        return (abi.decode(encodedValue, (uint64)), EXCHANGE_RATE_DECIMALS);
+        return (timestamp, abi.decode(encodedValue, (uint64)), EXCHANGE_RATE_DECIMALS);
     }
 }

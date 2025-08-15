@@ -275,7 +275,7 @@ library PegRequestHelper {
         uint64[] memory recipientAmounts
     ) {
 
-        _request.depositedAt = IBitcoinTxStore(_bridge.bitcoinTxStore()).getBlockTimestamp(_blockHeight);
+        _request.depositedAt = block.timestamp.toUint64();
 
         (
             exchangeRate,
@@ -288,7 +288,9 @@ library PegRequestHelper {
         );
 
         IConfigRegistry configRegistry = IConfigRegistry(_bridge.configRegistry());
-        (recipients, recipientAmounts) = calculatePegInTreasuryFeeSplits(_request, configRegistry);
+        if (_request.treasuryFee > 0) {
+            (recipients, recipientAmounts) = calculatePegInTreasuryFeeSplits(_request, configRegistry);
+        }
 
         _request.amount = _amount;
         _request.finalityHeight = _blockHeight + configRegistry.getBitcoinConfirmations(_custodianId);
@@ -330,7 +332,9 @@ library PegRequestHelper {
         );
 
         IConfigRegistry configRegistry = IConfigRegistry(_bridge.configRegistry());
-        (recipients, recipientAmounts) = calculatePegOutTreasuryFeeSplits(_request, configRegistry);
+        if (_request.treasuryFee > 0) {
+            (recipients, recipientAmounts) = calculatePegOutTreasuryFeeSplits(_request, configRegistry);
+        }
 
         _request.amount = _amount;
         _request.finalityHeight = block.number.toUint32() + configRegistry.getNativeConfirmations(_custodianId);
@@ -579,10 +583,6 @@ library PegRequestHelper {
     ) private pure returns(uint64[] memory amounts) {
         uint256 recipientCount = _shares.length;
         amounts = new uint64[](recipientCount);
-
-        if (recipientCount == 0 || _totalAmount == 0) {
-            return amounts;
-        }
 
         for (uint256 i = 0; i < recipientCount; ++i) {
             amounts[i] = _totalAmount * _shares[i] / PERCENTAGE_BASE;

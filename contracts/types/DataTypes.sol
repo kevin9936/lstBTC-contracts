@@ -56,7 +56,6 @@ enum TransferType {
 enum PegStatus {
     Unknown,        // Request status is unknown or invalid
     Pending,        // Request is pending finality confirmation
-    Rejected,       // Request has been rejected by custodian
     PendingPayout,  // Request is confirmed and pending payout
     PendingRefund,  // Request is rejected and pending refund
     Paid,           // Request has been paid out successfully

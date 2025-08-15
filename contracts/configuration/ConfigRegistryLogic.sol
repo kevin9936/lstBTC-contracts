@@ -36,7 +36,7 @@ contract ConfigRegistryLogic is IConfigRegistry, AccessControlBase, UUPSUpgradea
     error RedeemDustAmountBelowMinimum(uint64 amount);
 
     /// @notice Thrown when treasury fee rate exceeds maximum allowed
-    error TreasuryFeeRateExceedsMax(uint16 rate);
+    error TreasuryFeeRateExceeds(uint16 rate);
 
     /// @notice Thrown when recipients array is empty
     error RecipientsEmpty();
@@ -63,7 +63,7 @@ contract ConfigRegistryLogic is IConfigRegistry, AccessControlBase, UUPSUpgradea
     }
 
     /// @notice Default Bitcoin confirmation requirement (6 blocks)
-    uint32 public constant DEFAULT_BITCOIN_CONFIRMATIONS = 1;
+    uint32 public constant DEFAULT_BITCOIN_CONFIRMATIONS = 6;
 
     /// @notice Default native chain confirmation requirement (12 blocks)
     uint32 public constant DEFAULT_NATIVE_CONFIRMATIONS = 12;
@@ -183,7 +183,7 @@ contract ConfigRegistryLogic is IConfigRegistry, AccessControlBase, UUPSUpgradea
     /// @param _rate Treasury fee rate in basis points (e.g., 100 = 1%)
     function setPegInTreasuryFeeRate(uint16 _rate) external onlyGovernor {
         if (_rate >= PERCENTAGE_BASE) {
-            revert TreasuryFeeRateExceedsMax(_rate);
+            revert TreasuryFeeRateExceeds(_rate);
         }
 
         (, uint16 oldRate) = pegInFeeConfig.treasuryFeeRates.getLatestTreasuryFeeRate();
@@ -255,7 +255,7 @@ contract ConfigRegistryLogic is IConfigRegistry, AccessControlBase, UUPSUpgradea
     /// @param _rate Treasury fee rate in basis points (e.g., 100 = 1%)
     function setPegOutTreasuryFeeRate(uint16 _rate) external onlyGovernor {
         if (_rate >= PERCENTAGE_BASE) {
-            revert TreasuryFeeRateExceedsMax(_rate);
+            revert TreasuryFeeRateExceeds(_rate);
         }
 
         (, uint16 oldRate) = pegOutFeeConfig.treasuryFeeRates.getLatestTreasuryFeeRate();

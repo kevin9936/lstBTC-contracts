@@ -43,7 +43,7 @@ library FeeConfigHelper {
         TimeSeriesDataLib.TimeSeriesData storage _amountThresholds
     ) internal view returns (bool exists, uint64 amount) {
         bytes memory encodedValue;
-        (exists, encodedValue) = _amountThresholds.getLatest();
+        (exists, , encodedValue) = _amountThresholds.getLatest();
 
         if (exists) {
             amount = abi.decode(encodedValue, (uint64));
@@ -74,7 +74,7 @@ library FeeConfigHelper {
         TimeSeriesDataLib.TimeSeriesData storage _transactionFees
     ) internal view returns (bool exists, uint64 transactionFee) {
         bytes memory encodedValue;
-        (exists, encodedValue) = _transactionFees.getLatest();
+        (exists, , encodedValue) = _transactionFees.getLatest();
 
         if (exists) {
             transactionFee = abi.decode(encodedValue, (uint64));
@@ -105,7 +105,7 @@ library FeeConfigHelper {
         TimeSeriesDataLib.TimeSeriesData storage _treasuryFeeRates
     ) internal view returns (bool exists, uint16 rate) {
         bytes memory encodedValue;
-        (exists, encodedValue) = _treasuryFeeRates.getLatest();
+        (exists, , encodedValue) = _treasuryFeeRates.getLatest();
 
         if (exists) {
             rate = abi.decode(encodedValue, (uint16));
@@ -145,7 +145,7 @@ library FeeConfigHelper {
         uint16[] memory recipientAmounts
     ) {
         bytes memory encodedValue;
-        (exists, encodedValue) =  _treasuryFeeShares.getLatest();
+        (exists, , encodedValue) =  _treasuryFeeShares.getLatest();
 
         if (exists) {
             (recipients, recipientAmounts) = abi.decode(encodedValue, (address[], uint16[]));

@@ -134,16 +134,18 @@ library TimeSeriesDataLib {
     /// @dev Returns false if no data exists
     /// @param _timeSeriesData Storage reference to the time-series data
     /// @return exists Whether any data exists
+    /// @return timestamp The timestamp of the most recent entry in the time-series data
     /// @return encodedValue The encoded value at the most recent timestamp
     function getLatest(
         TimeSeriesData storage _timeSeriesData
-    ) internal view returns (bool exists, bytes memory encodedValue) {
+    ) internal view returns (bool exists, uint64 timestamp, bytes memory encodedValue) {
         uint256 len = _timeSeriesData.timestamps.length;
-        if (len == 0) { return (exists, encodedValue); }
+        if (len == 0) {
+            return (exists, timestamp, encodedValue);
+        }
 
-        encodedValue = _timeSeriesData.values[
-            _timeSeriesData.timestamps[len - 1]
-        ];
         exists = true;
+        timestamp = _timeSeriesData.timestamps[len - 1];
+        encodedValue = _timeSeriesData.values[timestamp];
     }
 }

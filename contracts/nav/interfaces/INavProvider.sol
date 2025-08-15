@@ -74,9 +74,10 @@ interface INavProvider {
     function getExchangeRate(uint64 _timestamp) external view returns (uint64, uint8);
 
     /// @notice Returns the latest exchange rate
+    /// @return updateTime The timestamp when the latest exchange rate was last updated
     /// @return exchangeRate Latest exchange rate
     /// @return decimals Number of decimal places for the exchange rate
-    function getLatestExchangeRate() external view returns (uint64, uint8);
+    function getLatestExchangeRate() external view returns (uint64, uint64, uint8);
 
     /// @notice Increases the total pegged Bitcoin amount
     /// @dev Only callable by the bridge contract

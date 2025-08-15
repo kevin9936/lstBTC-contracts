@@ -291,7 +291,7 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
     /// @param _blockHeight Block height where transaction was included in Bitcoin blockchain
     /// @param _merkleProof Merkle proof for transaction inclusion (path from tx to block root)
     /// @param _index Index of transaction in the Merkle tree (0-based)
-    /// @return txId Transaction ID of the verified transaction (in little-endian format)
+    /// @return txId Transaction ID of the verified transaction
     function verifyAndStoreTransaction(
         bytes calldata _rawTx,
         uint32 _blockHeight,
@@ -324,14 +324,14 @@ contract BitcoinTxStoreLogic is IBitcoinTxStore,
     /// @dev Checks if transaction is included in a finalized Bitcoin block.
     /// Uses Merkle tree proof to verify transaction inclusion without full block data.
     /// Follows Bitcoin protocol specification for Merkle tree validation
-    /// @param _txId Transaction ID in little-endian format (Bitcoin standard)
+    /// @param _txId Transaction ID
     /// @param _blockHeight Block height where transaction should be included
-    /// @param _merkleProof Merkle proof path from transaction to block root (little-endian)
+    /// @param _merkleProof Merkle proof path from transaction to block root
     /// @param _index Index of transaction in the Merkle tree (0-based)
     function _checkMerkleProof(
-        bytes32 _txId, // In LE form
+        bytes32 _txId,
         uint32 _blockHeight,
-        bytes32[] calldata _merkleProof, // In LE form
+        bytes32[] calldata _merkleProof,
         uint32 _index
     ) internal view returns (bool) {
         // Check inclusion of the transaction

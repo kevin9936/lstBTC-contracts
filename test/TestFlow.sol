@@ -43,6 +43,7 @@ contract TestFlow is Deployer {
     bytes public constant REPAYMENT_BTC_ADDRESS = P2WSH_ADDRESS;
     bytes public constant YIELD_BTC_ADDRESS = P2PK_ADDRESS;
 
+
     function setUp() public {
         user1 = address(2000);
         user2 = address(2001);
@@ -59,6 +60,7 @@ contract TestFlow is Deployer {
         _initConfig();
         _addWhitelist();
     }
+
     function test_flow_mint_and_burn() public {
         bytes32 outboundBtcUtxo0 = submitBtcTx(bytes32('outboundBtcUtxo0'), 0, userBtcAddress0, OUTBOUND_BTC_ADDRESS, 10e8, hex"", 0);
         bytes32 outboundBtcUtxo1 = submitBtcTx(bytes32('outboundBtcUtxo1'), 0, userBtcAddress1, OUTBOUND_BTC_ADDRESS, 10e8, hex"", 0);
@@ -342,8 +344,8 @@ contract TestFlow is Deployer {
         assertEq(lstBTCBridge.claimableFees(makeAddr("treasury3")), expectedPegOutFee * 7000 / 10000);
         assertEq(lstBTCBridge.claimableFees(makeAddr("treasury4")), expectedPegOutFee * 3000 / 10000);
 
-        bytes32 operationsTx1 = submitBtcTx('userTx1',0,userBtcAddress0,OPERATIONS_BTC_ADDRESS,10e8,hex"",0);
-        submitBtcTx(operationsTx1,0,OPERATIONS_BTC_ADDRESS,INBOUND_BTC_ADDRESS,pendingPayBTC2,hex"",0);
+        bytes32 operationsTx1 = submitBtcTx('userTx1', 0, userBtcAddress0, OPERATIONS_BTC_ADDRESS, 10e8, hex"", 0);
+        submitBtcTx(operationsTx1, 0, OPERATIONS_BTC_ADDRESS, INBOUND_BTC_ADDRESS, pendingPayBTC2, hex"", 0);
 
         vm.warp(BTC_TX_TIMESTAMP + 3000);
         bytes32 userMintTx1 = submitBtcTx(bytes32('userMintTx1'), 0, userBtcAddress0, OUTBOUND_BTC_ADDRESS, 1e8, hex"", 0);
@@ -360,7 +362,6 @@ contract TestFlow is Deployer {
         newShares2[1] = 1000;
         configRegistry.setPegInTreasuryFeeShares(newRecipients2, newShares2);
         vm.warp(BTC_TX_TIMESTAMP + 5000);
-        console.log("BTC_TX_TIMESTAMP + 5000", BTC_TX_TIMESTAMP + 5000);
         uint256[] memory pegInIds1 = new uint256[](1);
         pegInIds1[0] = 3;
         processPegBatch(pegInIds1, new uint256[](0), operationsNativeAddress);
@@ -400,11 +401,11 @@ contract TestFlow is Deployer {
         submitBtcTx(operationsTx, 0, OPERATIONS_BTC_ADDRESS, INBOUND_BTC_ADDRESS, pendingPayBTC2, hex"", 0);
     }
 
-    function test_human_operation_errors() public {
+    function test_transfer_operation_errors() public {
         uint64 correctAmount = 5e8;
         uint64 wrongAmount = 3e8;
-        bytes32 userMintTx = submitBtcTx(bytes32('userMintTx'),0,userBtcAddress0,OUTBOUND_BTC_ADDRESS,correctAmount,OUTBOUND_BTC_ADDRESS,correctAmount);
-        bytes32 operationsTx = submitBtcTx(userMintTx,0,OUTBOUND_BTC_ADDRESS,OPERATIONS_BTC_ADDRESS,correctAmount,hex"",0);
+        bytes32 userMintTx = submitBtcTx(bytes32('userMintTx'), 0, userBtcAddress0, OUTBOUND_BTC_ADDRESS, correctAmount, OUTBOUND_BTC_ADDRESS, correctAmount);
+        bytes32 operationsTx = submitBtcTx(userMintTx, 0, OUTBOUND_BTC_ADDRESS, OPERATIONS_BTC_ADDRESS, correctAmount, hex"", 0);
         uint256[] memory pegInIds = new uint256[](1);
         pegInIds[0] = 1;
         vm.prank(operationsNativeAddress);
@@ -413,36 +414,36 @@ contract TestFlow is Deployer {
         lstBTCTransfer(operationsNativeAddress, inboundNativeAddress, pendingPayWrapped);
         lstBTCTransfer(inboundNativeAddress, user1, pendingPayWrapped);
         lstBTCTransfer(user1, outboundNativeAddress, pendingPayWrapped);
-        lstBTCTransfer(outboundNativeAddress, operationsNativeAddress, pendingPayWrapped/2);
-
+        lstBTCTransfer(outboundNativeAddress, operationsNativeAddress, pendingPayWrapped / 2);
+        // 1. The amount of money paid is incorrect
         uint256[] memory pegOutIds = new uint256[](1);
         pegOutIds[0] = 2;
         (uint64 pendingPayWrapped2, uint64 pendingPayBTC2) = processPegBatch(new uint256[](0), pegOutIds, operationsNativeAddress);
-        (bytes memory rawTx, bytes32 txId, bytes[] memory toPkScripts) = buildBtcRawTx(operationsTx, 0, INBOUND_BTC_ADDRESS, pendingPayBTC2-1, hex"", 0);
+        (bytes memory rawTx, bytes32 txId, bytes[] memory toPkScripts) = buildBtcRawTx(operationsTx, 0, INBOUND_BTC_ADDRESS, pendingPayBTC2 - 1, hex"", 0);
         uint32 blockHeight = 90000;
         mockCheckTxProof(txId, blockHeight, true);
         vm.prank(relayerAddress);
         vm.expectRevert();
-        lstBTCBridge.submitTransactionProof(rawTx,blockHeight,new bytes32[](1),0,OPERATIONS_BTC_ADDRESS,toPkScripts);
-        bytes32 operationsTx1 = submitBtcTx(txId, 0, INBOUND_BTC_ADDRESS, OPERATIONS_BTC_ADDRESS, pendingPayBTC2-1, hex"", 0);
+        lstBTCBridge.submitTransactionProof(rawTx, blockHeight, new bytes32[](1), 0, OPERATIONS_BTC_ADDRESS, toPkScripts);
+        bytes32 operationsTx1 = submitBtcTx(txId, 0, INBOUND_BTC_ADDRESS, OPERATIONS_BTC_ADDRESS, pendingPayBTC2 - 1, hex"", 0);
         (, , ,bool isPegInSettled1, bool isPegOutSettled1) = lstBTCBridge.getCustodianLatestBatch(10001);
         assertFalse(isPegOutSettled1);
         submitBtcTx(operationsTx1, 0, OPERATIONS_BTC_ADDRESS, INBOUND_BTC_ADDRESS, pendingPayBTC2, hex"", 0);
         (, , ,bool isPegInSettled, bool isPegOutSettled) = lstBTCBridge.getCustodianLatestBatch(10001);
         assertTrue(isPegInSettled);
         assertTrue(isPegOutSettled);
-        
-        bytes32 userMintTx2 = submitBtcTx(bytes32('userMintTx1111'),0,userBtcAddress0,OUTBOUND_BTC_ADDRESS,10e8,OUTBOUND_BTC_ADDRESS,10e8);
-        bytes32 operationsTx2 = submitBtcTx(userMintTx2,1,OUTBOUND_BTC_ADDRESS,OPERATIONS_BTC_ADDRESS,5e8,hex"",0);
+        // 2.I need a refund, I went to pay
+        bytes32 userMintTx2 = submitBtcTx(bytes32('userMintTx1'), 0, userBtcAddress0, OUTBOUND_BTC_ADDRESS, 10e8, OUTBOUND_BTC_ADDRESS, 10e8);
+        bytes32 operationsTx2 = submitBtcTx(userMintTx2, 1, OUTBOUND_BTC_ADDRESS, OPERATIONS_BTC_ADDRESS, 5e8, hex"", 0);
         uint256[] memory inPendingPegInIds = new uint256[](1);
         inPendingPegInIds[0] = 3;
-        rejectPegBatch(inPendingPegInIds,new uint256[](0));
-        (bytes memory rawTx1, bytes32 txId1, bytes[] memory toPkScripts1) = buildBtcRawTx(operationsTx2, 0, INBOUND_BTC_ADDRESS,5e8, hex"", 0);
+        rejectPegBatch(inPendingPegInIds, new uint256[](0));
+        (bytes memory rawTx1, bytes32 txId1, bytes[] memory toPkScripts1) = buildBtcRawTx(operationsTx2, 0, INBOUND_BTC_ADDRESS, 5e8, hex"", 0);
         uint32 blockHeight1 = 90001;
         mockCheckTxProof(txId1, blockHeight1, true);
         vm.prank(relayerAddress);
         vm.expectRevert();
-        lstBTCBridge.submitTransactionProof(rawTx1,blockHeight1,new bytes32[](1),0,OPERATIONS_BTC_ADDRESS,toPkScripts1);
+        lstBTCBridge.submitTransactionProof(rawTx1, blockHeight1, new bytes32[](1), 0, OPERATIONS_BTC_ADDRESS, toPkScripts1);
         bytes32 operationsTx3 = submitBtcTx(txId1, 0, INBOUND_BTC_ADDRESS, OPERATIONS_BTC_ADDRESS, 5e8, hex"", 0);
         (, , ,bool isPegInSettled2, bool isPegOutSettled2) = lstBTCBridge.getCustodianLatestBatch(10001);
         assertFalse(isPegInSettled2);
@@ -450,7 +451,153 @@ contract TestFlow is Deployer {
         (, , ,bool isPegInSettled3, bool isPegOutSettled3) = lstBTCBridge.getCustodianLatestBatch(10001);
         assertTrue(isPegInSettled3);
         assertTrue(isPegOutSettled3);
-       }
+        // 3.The change address is another withdrawal address when minting
+        bytes memory secondOutboundBtcAddress = hex"76a91412c54f253623b6f6bb328fae0e8c9a73ee8a544688ac";
+        bytes[] memory newAddresses = new bytes[](1);
+        uint8[] memory newFormats = new uint8[](1);
+        uint8[] memory newUsages = new uint8[](1);
+        newAddresses[0] = secondOutboundBtcAddress;
+        newFormats[0] = ADDRESS_FORMAT_BTC;
+        newUsages[0] = AddressUsage.INBOUND;
+        vm.prank(groupMemberOperator);
+        whitelistRegistry.addEntriesToGroup(10001, newAddresses, newFormats, newUsages);
+        assertEq(lstBTCBridge.requestIdCounter(), 3);
+        bytes32 userMintTx3 = submitBtcTx(bytes32('userMintTx3'), 0, userBtcAddress0, OUTBOUND_BTC_ADDRESS, 10e8, secondOutboundBtcAddress, 10e8);
+        assertEq(lstBTCBridge.requestIdCounter(), 3);
+    }
+
+    function test_flow_multiple_operations_addresses_in_group() public {
+        address secondOperationsNativeAddress = makeAddr("secondOperationsNative");
+        bytes memory secondOperationsBtcAddress = hex"a914f2cce6a0fa833e85a9127843a68a640c0d12107787";
+
+        bytes[] memory newAddresses = new bytes[](2);
+        uint8[] memory newFormats = new uint8[](2);
+        uint8[] memory newUsages = new uint8[](2);
+
+        newAddresses[0] = abi.encodePacked(secondOperationsNativeAddress);
+        newAddresses[1] = secondOperationsBtcAddress;
+        newFormats[0] = ADDRESS_FORMAT_NATIVE;
+        newFormats[1] = ADDRESS_FORMAT_BTC;
+        newUsages[0] = AddressUsage.OPERATIONS;
+        newUsages[1] = AddressUsage.OPERATIONS;
+
+        vm.prank(groupMemberOperator);
+        whitelistRegistry.addEntriesToGroup(10001, newAddresses, newFormats, newUsages);
+
+        bytes32 userMintTx1 = submitBtcTx(bytes32('userMintTx1'), 0, userBtcAddress0, OUTBOUND_BTC_ADDRESS, 5e8, hex"", 0);
+        bytes32 userMintTx2 = submitBtcTx(bytes32('userMintTx2'), 0, userBtcAddress1, OUTBOUND_BTC_ADDRESS, 3e8, hex"", 0);
+
+        bytes32 operationsTx1 = submitBtcTx(userMintTx1, 0, OUTBOUND_BTC_ADDRESS, OPERATIONS_BTC_ADDRESS, 5e8, hex"", 0);
+
+        bytes32 operationsTx2 = submitBtcTx(userMintTx2, 0, OUTBOUND_BTC_ADDRESS, hex"a914f2cce6a0fa833e85a9127843a68a640c0d12107787", 3e8, hex"", 0);
+
+        uint256[] memory pegInIds1 = new uint256[](1);
+        pegInIds1[0] = 1;
+        (uint64 pendingPayWrapped1,) = processPegBatch(pegInIds1, new uint256[](0), operationsNativeAddress);
+        lstBTCTransfer(operationsNativeAddress, inboundNativeAddress, pendingPayWrapped1);
+
+
+        uint256[] memory pegInIds2 = new uint256[](1);
+        pegInIds2[0] = 2;
+        (uint64 pendingPayWrapped2,) = processPegBatch(pegInIds2, new uint256[](0), makeAddr("secondOperationsNative"));
+        lstBTCTransfer(makeAddr("secondOperationsNative"), inboundNativeAddress, pendingPayWrapped2);
+        lstBTCTransfer(inboundNativeAddress, user1, pendingPayWrapped1);
+        lstBTCTransfer(inboundNativeAddress, user2, pendingPayWrapped2);
+
+        assertEq(lstBTC.balanceOf(user1), pendingPayWrapped1);
+        assertEq(lstBTC.balanceOf(user2), pendingPayWrapped2);
+
+        lstBTCTransfer(user1, outboundNativeAddress, pendingPayWrapped1 / 2);
+        lstBTCTransfer(outboundNativeAddress, makeAddr("secondOperationsNative"), pendingPayWrapped1 / 2);
+
+        uint256[] memory pegOutIds = new uint256[](1);
+        pegOutIds[0] = 3;
+        vm.prank(makeAddr("secondOperationsNative"));
+        lstBTC.approve(address(lstBTCBridge), 10e8);
+        (, uint64 pendingPayBTC) = processPegBatch(new uint256[](0), pegOutIds, makeAddr("secondOperationsNative"));
+
+        bytes32 finalTx = submitBtcTx(operationsTx2, 0, hex"a914f2cce6a0fa833e85a9127843a68a640c0d12107787", INBOUND_BTC_ADDRESS, pendingPayBTC, hex"", 0);
+
+
+        (uint32 latestBatchId, , , bool isPegInSettled, bool isPegOutSettled) = lstBTCBridge.getCustodianLatestBatch(10001);
+        assertEq(latestBatchId, 3);
+        assertEq(isPegInSettled, true);
+        assertEq(isPegOutSettled, true);
+    }
+
+
+    function test_flow_multiple_inbound_outbound_addresses_in_group() public {
+        address secondOutboundNativeAddress = makeAddr("secondOutboundNative");
+        address secondInboundNativeAddress = makeAddr("secondInboundNative");
+        bytes memory secondOutboundBtcAddress = hex"76a91412c54f253623b6f6bb328fae0e8c9a73ee8a544688ac";
+        bytes memory secondInboundBtcAddress = hex"a9149640ddcafd397f9b6e45f9ef5284c10ce3486cd987";
+
+        bytes[] memory newAddresses = new bytes[](4);
+        uint8[] memory newFormats = new uint8[](4);
+        uint8[] memory newUsages = new uint8[](4);
+
+        newAddresses[0] = abi.encodePacked(secondOutboundNativeAddress);
+        newAddresses[1] = secondOutboundBtcAddress;
+        newAddresses[2] = abi.encodePacked(secondInboundNativeAddress);
+        newAddresses[3] = secondInboundBtcAddress;
+
+        newFormats[0] = ADDRESS_FORMAT_NATIVE;
+        newFormats[1] = ADDRESS_FORMAT_BTC;
+        newFormats[2] = ADDRESS_FORMAT_NATIVE;
+        newFormats[3] = ADDRESS_FORMAT_BTC;
+
+        newUsages[0] = AddressUsage.OUTBOUND;
+        newUsages[1] = AddressUsage.OUTBOUND;
+        newUsages[2] = AddressUsage.INBOUND;
+        newUsages[3] = AddressUsage.INBOUND;
+
+        vm.prank(groupMemberOperator);
+        whitelistRegistry.addEntriesToGroup(10001, newAddresses, newFormats, newUsages);
+
+        bytes32 userMintTx1 = submitBtcTx(bytes32('userMintTx1'), 0, userBtcAddress0, OUTBOUND_BTC_ADDRESS, 4e8, hex"", 0);
+        bytes32 userMintTx2 = submitBtcTx(bytes32('userMintTx2'), 0, userBtcAddress1, secondOutboundBtcAddress, 6e8, hex"", 0);
+
+        bytes32 operationsTx1 = submitBtcTx(userMintTx1, 0, OUTBOUND_BTC_ADDRESS, OPERATIONS_BTC_ADDRESS, 4e8, hex"", 0);
+        bytes32 operationsTx2 = submitBtcTx(userMintTx2, 0, secondOutboundBtcAddress, OPERATIONS_BTC_ADDRESS, 6e8, hex"", 0);
+
+        uint256[] memory pegInIds = new uint256[](2);
+        pegInIds[0] = 1;
+        pegInIds[1] = 2;
+        (uint64 pendingPayWrapped,) = processPegBatch(pegInIds, new uint256[](0), operationsNativeAddress);
+
+        lstBTCTransfer(operationsNativeAddress, secondInboundNativeAddress, pendingPayWrapped);
+        lstBTCTransfer(secondInboundNativeAddress, user1, pendingPayWrapped / 2);
+        lstBTCTransfer(secondInboundNativeAddress, user2, pendingPayWrapped / 2);
+
+        assertEq(lstBTC.balanceOf(user1), pendingPayWrapped / 2);
+        assertEq(lstBTC.balanceOf(user2), pendingPayWrapped / 2);
+
+        uint64 redeemAmount1 = 2e8;
+        uint64 redeemAmount2 = 3e8;
+
+        lstBTCTransfer(user1, outboundNativeAddress, redeemAmount1);
+        lstBTCTransfer(user2, makeAddr("secondOutboundNative"), redeemAmount2);
+        lstBTCTransfer(outboundNativeAddress, operationsNativeAddress, redeemAmount1);
+        lstBTCTransfer(makeAddr("secondOutboundNative"), operationsNativeAddress, redeemAmount2);
+
+        uint256[] memory pegOutIds = new uint256[](2);
+        pegOutIds[0] = 3;
+        pegOutIds[1] = 4;
+        vm.prank(operationsNativeAddress);
+        lstBTC.approve(address(lstBTCBridge), 20e8);
+        (, uint64 pendingPayBTC) = processPegBatch(new uint256[](0), pegOutIds, operationsNativeAddress);
+
+        bytes32 inboundTx1 = submitBtcTx(operationsTx1, 0, OPERATIONS_BTC_ADDRESS, INBOUND_BTC_ADDRESS, pendingPayBTC, hex"", 0);
+
+        submitBtcTx(inboundTx1, 0, INBOUND_BTC_ADDRESS, userBtcAddress0, pendingPayBTC / 2, hex"", 0);
+        submitBtcTx(inboundTx1, 0, hex"a9149640ddcafd397f9b6e45f9ef5284c10ce3486cd987", userBtcAddress1, pendingPayBTC / 2, hex"", 0);
+
+        (uint32 latestBatchId, , , bool isPegInSettled, bool isPegOutSettled) = lstBTCBridge.getCustodianLatestBatch(10001);
+        assertEq(latestBatchId, 2);
+        assertEq(isPegInSettled, true);
+        assertEq(isPegOutSettled, true);
+    }
+
 
     function _addGroup2Whitelist(
         bytes memory group2OutboundBtc,
